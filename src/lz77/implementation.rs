@@ -1,6 +1,6 @@
 use std::{cmp::max, collections::HashMap};
 
-use super::hashes::{HashTable, HashPair};
+use super::hashes::{HashTable, Hash};
 
 const DEFAULT_WINDOW_SIZE: usize = 32768;
 const DEFAULT_MAX_LEN_TO_REDUCE: usize = 181; 
@@ -96,8 +96,8 @@ struct SlidingWindow<'a> {
     text: &'a String,
     max_len_to_reduce: usize,
     window_size: usize,
-    hashes: HashTable,
-    subwords: Vec<HashMap<HashPair, usize>>,
+    hashes: HashTable<'a>,
+    subwords: Vec<HashMap<Hash, usize>>,
     partial_result: Vec<(usize, usize)>
 }
 
@@ -108,7 +108,7 @@ impl<'a> SlidingWindow<'a> {
             max_len_to_reduce: max_len, 
             window_size: window_size,
             text: text,
-            hashes: HashTable::new(text),
+            hashes: HashTable::new(text, None),
             subwords: Vec::from_iter((0..max_len).into_iter().map(|_| {HashMap::new()})),
             partial_result: Vec::new() 
         }
@@ -129,7 +129,7 @@ impl<'a> SlidingWindow<'a> {
         }
     }
 
-    fn extract_new_subwords(&self, index: usize) -> Vec<(HashPair, usize)> {
+    fn extract_new_subwords(&self, index: usize) -> Vec<(Hash, usize)> {
         Vec::from_iter(
             (max(0, index-self.max_len_to_reduce)..index)
             .into_iter()
@@ -140,7 +140,7 @@ impl<'a> SlidingWindow<'a> {
         )
     }
     
-    fn update_result(&mut self, new_subwords_desc: &Vec<(HashPair, usize)>, index: usize) -> () {
+    fn update_result(&mut self, new_subwords_desc: &Vec<(Hash, usize)>, index: usize) -> () {
         let all_sub_and_new_sub  = self.subwords.clone().into_iter().zip(new_subwords_desc.into_iter());
         for (length, (bucket, subword)) in all_sub_and_new_sub.enumerate() {
             if let Some(same_word_start_index) = bucket.get(&subword.0) {
@@ -152,7 +152,7 @@ impl<'a> SlidingWindow<'a> {
         }
     }
 
-    fn add_new_subwords(&mut self, new_subwords: Vec<(HashPair, usize)>) -> () {
+    fn add_new_subwords(&mut self, new_subwords: Vec<(Hash, usize)>) -> () {
         for (mut bucket, subword) in self.subwords.clone().into_iter().zip(new_subwords.into_iter()) {
             if !bucket.contains_key(&subword.0) {
                 bucket.insert(subword.0, subword.1);
