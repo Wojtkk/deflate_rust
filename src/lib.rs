@@ -1,10 +1,12 @@
 pub mod lz77;
 pub mod huffman;
+pub mod utils;
 
 use std::collections::HashMap;
 
 use bit_vec::BitVec;
-use lz77::implementation::LZ77;
+use huffman::{HuffmanCodes, HuffmanCompressor};
+use lz77::LZ77Compressor;
 
 #[macro_use]
 extern crate fstrings;
@@ -13,6 +15,7 @@ extern crate fstrings;
 pub enum Params {
     WindowSize,
     BlockSize,
+    CodesPredef,
 }
 
 pub struct CompressionParams {
@@ -29,6 +32,7 @@ impl CompressionParams {
         let mut aliases: HashMap<String, Params> = HashMap::new();
         aliases.insert("-window_size".to_string(), Params::WindowSize);
         aliases.insert("-blocks_num".to_string(), Params::BlockSize);
+        aliases.insert("-codes_predef".to_string(), Params::CodesPredef);
         Self {
             command_line_aliases: aliases,
             params: default_params,
@@ -59,20 +63,21 @@ impl CompressionParams {
 }
 
 struct DeflateCompression<'a> {
+    huffman_codes: &'a HuffmanCodes,
     compression_params: &'a CompressionParams,
-    last_compression_output: &'a BitVec,
+    last_compression_output: Option<&'a BitVec>,
     lz77_compressor: LZ77Compressor,
-    huffman_compressor: HuffmanCompressor ,
+    huffman_compressor: HuffmanCompressor, 
 }
 
 impl DeflateCompression<'_> {
     pub fn new(compression_params: &CompressionParams) -> Self {
         DeflateCompression {
-            huffman_codes: None,
+            huffman_codes: &HuffmanCodes::new_empty(),
             compression_params: compression_params,
             last_compression_output: None,
             lz77_compressor: LZ77Compressor::new(compression_params),
-            huff_compressor: HuffmanCompresor::new(compression_params)
+            huffman_compressor: HuffmanCompresor::new(compression_params.get_param(&Params::CodesPredef))
         }
     }
 

@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 fstrings = "0.2.3"
-bit-vec = "1.0"
+bit-vec = "0.8.0"
