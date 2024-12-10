@@ -47,8 +47,8 @@ impl CompressionParams {
     }
 
     #[allow(dead_code)]
-    pub fn get_param(&mut self, param: &Params) -> &usize {
-        self.params.get(param).unwrap()
+    pub fn get_param(&self, param: &Params) -> usize {
+        *self.params.get(param).unwrap()
     }
 
     pub fn give_help_message(&self) -> String {
@@ -63,32 +63,29 @@ impl CompressionParams {
 }
 
 struct DeflateCompression<'a> {
-    huffman_codes: &'a HuffmanCodes,
     compression_params: &'a CompressionParams,
-    last_compression_output: Option<&'a BitVec>,
     lz77_compressor: LZ77Compressor,
     huffman_compressor: HuffmanCompressor, 
 }
 
-impl DeflateCompression<'_> {
-    pub fn new(compression_params: &CompressionParams) -> Self {
+impl<'a> DeflateCompression<'a> {
+    pub fn new(compression_params: &'a CompressionParams) -> Self {
+        let predefined_codes = compression_params.get_param(&Params::CodesPredef) > 0;
         DeflateCompression {
-            huffman_codes: &HuffmanCodes::new_empty(),
             compression_params: compression_params,
-            last_compression_output: None,
-            lz77_compressor: LZ77Compressor::new(compression_params),
-            huffman_compressor: HuffmanCompresor::new(compression_params.get_param(&Params::CodesPredef))
+            lz77_compressor: LZ77Compressor::new(Some(compression_params.get_param(&Params::WindowSize)), None),
+            huffman_compressor: HuffmanCompressor::new(predefined_codes)
         }
     }
 
-    pub fn deflate_compress(&mut self, text: &String, params: &CompressionParams) -> BitVec {
+    pub fn deflate_compress(&mut self, text: &String) -> BitVec {
         let lz77_output: String = self.lz77_compressor.compress(text);
-        self.huffman_compressor.compress(lz77_output)
+        self.huffman_compressor.compress(&lz77_output)
     }
 
-    pub fn deflate_decompress(&self, bytes: BitVec) -> String {
-        let huffman_decompressed = self.huffman_compressor.decompress(bytes);
-        self.lz77_compressor.decompress(huffman_decompressed)
+    pub fn deflate_decompress(&self, mut bytes: BitVec) -> String {
+        let huffman_decompressed = self.huffman_compressor.decompress(&mut bytes);
+        self.lz77_compressor.decompress(&huffman_decompressed)
     }
 }
 

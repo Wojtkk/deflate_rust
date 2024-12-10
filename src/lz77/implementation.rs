@@ -3,7 +3,6 @@ use std::{cmp::max, collections::HashMap};
 use super::hashes::{HashTable, Hash};
 
 const DEFAULT_WINDOW_SIZE: usize = 32768;
-const DEFAULT_MAX_LEN_TO_REDUCE: usize = 181; 
 const DEFAULT_LEN_TRESHOLD: usize = 6;
 
 #[derive(Clone)]
@@ -33,7 +32,7 @@ impl ResultEncoding {
     }
 }
 
-struct ResultEncodingVec {
+pub struct ResultEncodingVec {
     vec: Vec<ResultEncoding> 
 }
 
@@ -202,7 +201,7 @@ impl LZ77Compressor {
     }
 
     pub fn compress(&self, str: &String) -> String {
-        let mut sw = SlidingWindow::new(str, self.window_size, None);
+        let mut sw = SlidingWindow::new(str, self.window_size, self.max_len_to_reduce);
         sw.run();
         sw.get_result()
     }
