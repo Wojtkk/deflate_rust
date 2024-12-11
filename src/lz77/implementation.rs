@@ -166,11 +166,15 @@ impl<'a> SlidingWindow<'a> {
                 }
 
                 let h = self.hashes.get_hash(start, start + i);
+                println!("{:?}", h);
+                println!("{:?}", self.subwords[i]);
                 if let Some(positions) = self.subwords[i].get_mut(&h) {
-                    positions.pop_front().unwrap();
+                    positions.pop_back().unwrap();
                     if positions.len() == 0 {
+                        println!("see {}", i);
                         self.subwords[i].remove(&h);
                     }
+                    println!("{:?}", self.subwords[i]);
                 }
                 
             }
