@@ -32,6 +32,11 @@ pub struct CompressionParams {
     params: HashMap<Params, Option<usize>>,
 }
 
+impl Default for CompressionParams {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl CompressionParams {
     pub fn new() -> Self {
@@ -75,8 +80,7 @@ impl CompressionParams {
             .map(|(k, v)| k + ": " + v.explain() + "\n")
             .collect();
         let t1 = "Usage is: cargo run -- [options value]";
-        let t2 =
-            &f!("Possible 'options' are:\n{possible_options}    Value should be an integer");
+        let t2 = &f!("Possible 'options' are:\n{possible_options}    Value should be an integer");
 
         [info, sep, t1, t2, sep].join("\n")
     }
