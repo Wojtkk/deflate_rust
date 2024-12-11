@@ -8,6 +8,8 @@ use bit_vec::BitVec;
 
 use super::predef_codes;
 
+const DEFAULT_PREDEF_VALUE: usize = 1;
+
 pub struct HuffmanCodes {
     mapping_on_bits: HashMap<char, BitVec>,
     mapping_on_chars: HashMap<BitVec, char>,
@@ -64,7 +66,7 @@ pub struct HuffmanCompressor {
 impl HuffmanCompressor {
     pub fn new(predefined: Option<usize>) -> Self {
         HuffmanCompressor {
-            predefined: predefined.unwrap() > 0,
+            predefined: predefined.unwrap_or(DEFAULT_PREDEF_VALUE) > 0,
             huffman_codes: None,
         }
     }

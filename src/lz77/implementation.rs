@@ -161,7 +161,6 @@ impl<'a> SlidingWindow<'a> {
             max_len_to_reduce.unwrap_or(SlidingWindow::sqrt_usize(window_size)),
             ws,
         );
-        println!("{} {}", ws, max_len);
         SlidingWindow {
             max_len_to_reduce: max_len,
             window_size: ws,
@@ -196,15 +195,11 @@ impl<'a> SlidingWindow<'a> {
                 }
 
                 let h = self.hashes.get_hash(start, start + i);
-                println!("{:?}", h);
-                println!("{:?}", self.subwords[i]);
                 if let Some(positions) = self.subwords[i].get_mut(&h) {
                     positions.pop_back().unwrap();
                     if positions.is_empty() {
-                        println!("see {}", i);
                         self.subwords[i].remove(&h);
                     }
-                    println!("{:?}", self.subwords[i]);
                 }
             }
         }

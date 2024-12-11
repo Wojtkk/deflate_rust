@@ -17,16 +17,21 @@ pub enum Params {
     CodesPredef,
 }
 
+impl Params {
+    pub fn explain(&self) -> &str {
+        match self {
+            Params::WindowSize => "Length of the interval in which in case of identical words occurence, the later one will be compressed.",
+            Params::MaxBlockSize => "Max length of word we will spot in sliding window.",
+            Params::CodesPredef => "If 1 then huffman codes will be predefined, otherwise we will calculate it according to the given text.",
+        }
+    }
+}
+
 pub struct CompressionParams {
     command_line_aliases: HashMap<String, Params>,
     params: HashMap<Params, Option<usize>>,
 }
 
-impl Default for CompressionParams {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl CompressionParams {
     pub fn new() -> Self {
@@ -66,12 +71,12 @@ impl CompressionParams {
         let possible_options: String = self
             .command_line_aliases
             .clone()
-            .into_keys()
-            .map(|k| k + " ")
+            .into_iter()
+            .map(|(k, v)| k + ": " + v.explain() + "\n")
             .collect();
         let t1 = "Usage is: cargo run -- [options value]";
         let t2 =
-            &f!("Possible 'options' are [{possible_options}] and 'value' should be an integer");
+            &f!("Possible 'options' are:\n{possible_options}    Value should be an integer");
 
         [info, sep, t1, t2, sep].join("\n")
     }
@@ -86,7 +91,7 @@ pub struct DeflateCompression {
 impl DeflateCompression {
     pub fn new(compression_params: &CompressionParams) -> Self {
         let window_size = compression_params.get_param(&Params::WindowSize);
-        let max_block_size = compression_params.get_param(&Params::WindowSize);
+        let max_block_size = compression_params.get_param(&Params::MaxBlockSize);
         let predefined_codes = compression_params.get_param(&Params::CodesPredef);
         DeflateCompression {
             lz77_compressor: LZ77Compressor::new(window_size, max_block_size),
