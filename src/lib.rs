@@ -4,9 +4,7 @@ pub mod utils;
 
 use std::collections::HashMap;
 
-use bit_vec::BitVec;
-use huffman::{HuffmanCodes, HuffmanCompressor};
-use itertools::Itertools;
+use huffman::HuffmanCompressor;
 use lz77::LZ77Compressor;
 
 #[macro_use]
@@ -22,6 +20,12 @@ pub enum Params {
 pub struct CompressionParams {
     command_line_aliases: HashMap<String, Params>,
     params: HashMap<Params, Option<usize>>,
+}
+
+impl Default for CompressionParams {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl CompressionParams {
@@ -45,7 +49,7 @@ impl CompressionParams {
         let param = &self
             .command_line_aliases
             .get(alias)
-            .expect(&self.give_help_message());
+            .unwrap_or_else(|| { panic!("{}", self.give_help_message()) });
         if let Some(old_val) = self.params.get_mut(param) {
             *old_val = Some(value);
         }
@@ -62,8 +66,7 @@ impl CompressionParams {
         let possible_options: String = self
             .command_line_aliases
             .clone()
-            .into_iter()
-            .map(|(k, v)| k + " ")
+            .into_keys().map(|k| k + " ")
             .collect();
         let t1 = "Usage is: cargo run -- [options value]";
         let t2 =
@@ -73,21 +76,20 @@ impl CompressionParams {
     }
 }
 
-pub struct DeflateCompression<'a> {
-    compression_params: &'a CompressionParams,
+#[warn(dead_code)]
+pub struct DeflateCompression {
     lz77_compressor: LZ77Compressor,
-    huffman_compressor: HuffmanCompressor,
+    _huffman_compressor: HuffmanCompressor,
 }
 
-impl<'a> DeflateCompression<'a> {
-    pub fn new(compression_params: &'a CompressionParams) -> Self {
+impl DeflateCompression {
+    pub fn new(compression_params: &CompressionParams) -> Self {
         let window_size = compression_params.get_param(&Params::WindowSize);
         let max_block_size = compression_params.get_param(&Params::WindowSize);
         let predefined_codes = compression_params.get_param(&Params::CodesPredef);
         DeflateCompression {
-            compression_params: compression_params,
             lz77_compressor: LZ77Compressor::new(window_size, max_block_size),
-            huffman_compressor: HuffmanCompressor::new(predefined_codes),
+            _huffman_compressor: HuffmanCompressor::new(predefined_codes),
         }
     }
 
@@ -98,9 +100,8 @@ impl<'a> DeflateCompression<'a> {
         // This would be the second part :DD
     }
 
-    pub fn deflate_decompress(&self, text: &String) -> String {
-        let lz77_decompressed = self.lz77_compressor.decompress(text);
-        lz77_decompressed
+    pub fn deflate_decompress(&self, text: &str) -> String {
+        self.lz77_compressor.decompress(text)
         // self.lz77_compressor.decompress(&huffman_decompressed)
         // This would be the second part :DD
     }

@@ -37,7 +37,7 @@ fn compression1() {
 #[test]
 fn compression2() {
     let s_org = String::from("aaaaaaaaaabbbbbbbbbb");
-    let s_compr_expected = String::from("aaaa~3~6~bbbb~3~6~");
+    let s_compr_expected = String::from("aaaa~1~6~bbbb~1~6~");
     let compressor_instance = LZ77Compressor::new(Some(8), Some(6));
     run_compression_test_case(s_org, s_compr_expected, compressor_instance);
 }

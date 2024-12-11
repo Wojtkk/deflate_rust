@@ -21,8 +21,8 @@ impl HuffmanCodes {
         }
     }
 
-    pub fn new_calc_on_text(text: &String) -> Self {
-        return HuffmanCodes::new_predefined(); // TODO
+    pub fn new_calc_on_text(_text: &str) -> Self {
+        HuffmanCodes::new_predefined()// TODO
     }
 
     fn get_predefined_mapping_on_bits() -> HashMap<char, BitVec> {
@@ -69,7 +69,7 @@ impl HuffmanCompressor {
         }
     }
 
-    pub fn compress(&mut self, text: &String) -> BitVec {
+    pub fn compress(&mut self, text: &str) -> BitVec {
         if self.predefined {
             self.huffman_codes = Some(HuffmanCodes::new_predefined())
         } else {

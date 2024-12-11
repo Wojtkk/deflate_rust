@@ -17,7 +17,6 @@ impl<'a> HashTable<'a> {
         HashTable {
             single_hashes: Vec::from_iter(
                 (0..hash_num)
-                    .into_iter()
                     .map(|i| SingleHashTable::new(str, modulos[i], primes[i])),
             ),
         }
@@ -57,17 +56,16 @@ impl<'a> SingleHashTable<'a> {
     fn calc_pow(size: usize, m: u64, p: u64) -> Vec<u32> {
         let mut x: u64 = 1;
         (0..size)
-            .into_iter()
             .map(|_| {
-                x = (x * p as u64) % m as u64;
+                x = (x * p) % m;
                 x as u32
             })
             .collect()
     }
 
-    fn calc_pref(str: &String, pows: &Vec<u32>, m: u64) -> Vec<u32> {
+    fn calc_pref(str: &str, pows: &[u32], m: u64) -> Vec<u32> {
         let mut x: u64 = 0;
-        pows.into_iter()
+        pows.iter()
             .zip(str.chars())
             .map(|(&p, c)| {
                 x = (x + p as u64 * (c as u64)) % m;
