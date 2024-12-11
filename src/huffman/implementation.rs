@@ -1,10 +1,10 @@
 const MAX_BIT_LENGTH_OF_CHAR: usize = 9;
 
-use std::collections::HashMap;
 use std::cmp::max;
+use std::collections::HashMap;
 
+use crate::utils::bitvec_ext::BitVecSlice;
 use bit_vec::BitVec;
-use crate::utils::bitvec_ext::BitVecSlice; 
 
 use super::predef_codes;
 
@@ -17,12 +17,12 @@ impl HuffmanCodes {
     pub fn new_predefined() -> Self {
         HuffmanCodes {
             mapping_on_bits: HuffmanCodes::get_predefined_mapping_on_bits(),
-            mapping_on_chars: HuffmanCodes::get_predefined_mapping_on_chars()
+            mapping_on_chars: HuffmanCodes::get_predefined_mapping_on_chars(),
         }
     }
 
     pub fn new_calc_on_text(text: &String) -> Self {
-        return HuffmanCodes::new_predefined(); // TODO 
+        return HuffmanCodes::new_predefined(); // TODO
     }
 
     fn get_predefined_mapping_on_bits() -> HashMap<char, BitVec> {
@@ -58,14 +58,14 @@ impl HuffmanCodes {
 }
 pub struct HuffmanCompressor {
     predefined: bool,
-    huffman_codes: Option<HuffmanCodes>, 
+    huffman_codes: Option<HuffmanCodes>,
 }
 
 impl HuffmanCompressor {
-    pub fn new(predefined: bool) -> Self {
+    pub fn new(predefined: Option<usize>) -> Self {
         HuffmanCompressor {
-            predefined: predefined, 
-            huffman_codes: None, 
+            predefined: predefined.unwrap() > 0,
+            huffman_codes: None,
         }
     }
 
@@ -73,10 +73,11 @@ impl HuffmanCompressor {
         if self.predefined {
             self.huffman_codes = Some(HuffmanCodes::new_predefined())
         } else {
-            self.huffman_codes = Some(HuffmanCodes::new_calc_on_text(text)) 
+            self.huffman_codes = Some(HuffmanCodes::new_calc_on_text(text))
         }
-        
-        let huffman_codes = self.huffman_codes
+
+        let huffman_codes = self
+            .huffman_codes
             .as_ref()
             .expect("Huffman codes should be Some() at this moment");
 
@@ -84,23 +85,28 @@ impl HuffmanCompressor {
         for c in text.chars() {
             let char_bits = huffman_codes.map_on_bits(c);
             bits.extend(char_bits);
-        }   
+        }
 
         bits
     }
 
     pub fn decompress(&self, bits: &mut BitVec) -> String {
         let mut index: usize = 0;
-        let mut chars: Vec<char>  = Vec::new();
+        let mut chars: Vec<char> = Vec::new();
         while index < bits.len() {
             let end: usize = max(index + MAX_BIT_LENGTH_OF_CHAR, bits.len());
             let slice = bits.slice(index, end);
-            let (c, increment) = self.huffman_codes.as_ref().expect("Decompressing without huffman codes set!").match_bits(&slice);
-            chars.push(c.expect("Bits in decompressed sequence do not match any char for current huffman codes."));
+            let (c, increment) = self
+                .huffman_codes
+                .as_ref()
+                .expect("Decompressing without huffman codes set!")
+                .match_bits(&slice);
+            chars.push(c.expect(
+                "Bits in decompressed sequence do not match any char for current huffman codes.",
+            ));
             index += increment;
-        };
+        }
 
         chars.iter().collect()
     }
-
 }

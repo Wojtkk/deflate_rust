@@ -1,8 +1,4 @@
-use std::{cmp::max, cmp::min, collections::{HashMap, VecDeque}, sync::Arc};
-use itertools::{
-    Itertools,
-    EitherOrBoth::*,
-};
+use std::{cmp::min, collections::{HashMap, VecDeque}};
 use super::hashes::{HashTable, Hash};
 
 const DEFAULT_WINDOW_SIZE: usize = 32768;
@@ -26,14 +22,13 @@ impl ResultEncoding {
         }     
     }
 
-    fn get_separator() -> char {
+    pub fn get_separator() -> char {
         char::from_u32(DEFAULT_ASCII_NUM_OF_SEPARATOR as u32).expect("There is no char corresponding to given number!")
     }
 
     pub fn len_treshold() -> usize {
         DEFAULT_LEN_TRESHOLD
     }
-
 }
 
 #[derive(Debug)]
@@ -73,10 +68,7 @@ impl ResultEncodingVec {
 
     pub fn expand(&self) -> String {
         let mut s = String::new();
-
-        println!("{:?}", self.vec);
         self.vec.clone().into_iter().map(|e|{
-            println!("xxx");
             match e {
                 ResultEncoding::Ascii(c) => {
                     s.push(c);
@@ -163,8 +155,6 @@ impl<'a> SlidingWindow<'a> {
             let new_subwords_aescending = new_subwords_descending; 
             self.add_new_subwords(new_subwords_aescending);
         }
-        
-        println!("{:?}", self.partial_result);
     }
 
     fn remove_old_subwords(&mut self, curr_index: usize) -> () {
@@ -205,7 +195,6 @@ impl<'a> SlidingWindow<'a> {
             let bucket = &self.subwords[subword_length-1];
             if let Some(positions) = bucket.get(&subword.0) {
                 let distance = index - positions[0] - subword_length + 1;
-                println!("d {} ind {} pos {}, sub {}", distance, index, positions[0], subword_length);
                 self.partial_result.push((distance, subword_length));
                 return
             } 

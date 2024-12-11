@@ -1,4 +1,4 @@
-pub mod implementation;
 pub mod hashes;
+pub mod implementation;
 
 pub use implementation::LZ77Compressor;
