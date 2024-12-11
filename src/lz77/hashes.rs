@@ -52,10 +52,8 @@ impl<'a> SingleHashTable<'a> {
 
     fn calc_pow(size: usize, m: u64, p: u64) -> Vec<u32> {
         let mut x: u64 = 1;
-        println!("**");
         (0..size).into_iter().map(|_| {
             x = (x * p as u64) % m as u64;
-            println!("{} {} {}", x, p, m);
             x as u32 
         }).collect()
     }
@@ -76,9 +74,6 @@ impl<'a> SingleHashTable<'a> {
 
         let interval: u64 = (self.modulo + self.pref[stop] as u64 - to_subtract as u64) % self.modulo;
         let shift = self.text.len() - start - 1;
-        println!("{}", self.text);
-        println!("{:#?}", self.pow);
-        println!("{:#?}", self.pref);
         let shifted_interval = (interval * self.pow[shift] as u64) % self.modulo;
         shifted_interval as usize 
     }

@@ -1,12 +1,16 @@
-use std::{cmp::max, collections::HashMap};
-
+use std::{cmp::max, cmp::min, collections::{HashMap, VecDeque}, sync::Arc};
+use itertools::{
+    Itertools,
+    EitherOrBoth::*,
+};
 use super::hashes::{HashTable, Hash};
 
 const DEFAULT_WINDOW_SIZE: usize = 32768;
 const DEFAULT_LEN_TRESHOLD: usize = 6;
+const DEFAULT_ASCII_NUM_OF_SEPARATOR: usize = 126;
 
-#[derive(Clone)]
-enum ResultEncoding {
+#[derive(Clone, Debug)]
+pub enum ResultEncoding {
     Ascii(char),
     Reference(usize, usize)
 }
@@ -17,21 +21,22 @@ impl ResultEncoding {
             ResultEncoding::Ascii(c) => c.to_string(),
             ResultEncoding::Reference(d, l) => {
                 let sep = ResultEncoding::get_separator().to_string();
-                [sep.clone(), l.to_string(), sep.clone(), d.to_string(), sep].concat()
+                [sep.clone(), d.to_string(), sep.clone(), l.to_string(), sep].concat()
             } 
         }     
     }
 
     fn get_separator() -> char {
-        let sep_num: u32 = 129;
-        char::from_u32(sep_num).expect("There is no char corresponding to given number!")
+        char::from_u32(DEFAULT_ASCII_NUM_OF_SEPARATOR as u32).expect("There is no char corresponding to given number!")
     }
 
     pub fn len_treshold() -> usize {
         DEFAULT_LEN_TRESHOLD
     }
+
 }
 
+#[derive(Debug)]
 pub struct ResultEncodingVec {
     vec: Vec<ResultEncoding> 
 }
@@ -45,6 +50,10 @@ impl ResultEncodingVec {
         self.vec.push(elem); 
     }
 
+    pub fn reverse(&mut self) -> () {
+        self.vec.reverse();
+    }
+
     pub fn from_string(str: &str) -> Self {
         let (mut i, mut res, sep) = (0, ResultEncodingVec::new(), ResultEncoding::get_separator());
         while i < str.len() {
@@ -55,11 +64,34 @@ impl ResultEncodingVec {
                 i += processed_size;
             } else {
                 res.push(ResultEncoding::Ascii(c));
+                i += 1;
             }
-            i += 1;
         }
 
         res 
+    }
+
+    pub fn expand(&self) -> String {
+        let mut s = String::new();
+
+        println!("{:?}", self.vec);
+        self.vec.clone().into_iter().map(|e|{
+            println!("xxx");
+            match e {
+                ResultEncoding::Ascii(c) => {
+                    s.push(c);
+                    c.to_string()
+                },
+                ResultEncoding::Reference(d, l) => {
+                    let i = s.len() - d;
+                    (i..i+l).into_iter().map(|j|{
+                        let c = char::from(s.as_bytes()[j]);
+                        s.push(c);
+                        c
+                    }).collect()
+                }
+            }
+        }).collect()
     }
 
     fn parse_reference(str: &str, start_index: usize) -> (ResultEncoding, usize) {
@@ -71,20 +103,23 @@ impl ResultEncodingVec {
             let c = char::from(str.as_bytes()[i]);
             if c == sep {
                 sep_counter += 1;
+                if sep_counter == 3 {
+                    break
+                }
+                i += 1;
+                continue;
             } 
             match sep_counter {
                 1 => dist.push(c),
                 2 => len.push(c),
-                3 => break,
-                _ => {},
+                _ => break,
             };
             i += 1;
         }
 
         let reference = ResultEncoding::Reference(dist.parse().unwrap(), len.parse().unwrap());
-        (reference, i - start_index)
+        (reference, i - start_index + 1)
     }
-
 
     pub fn to_string(&self) -> String {
         self.vec.clone().into_iter().map(|x| {x.to_string()}).collect()
@@ -96,16 +131,18 @@ struct SlidingWindow<'a> {
     max_len_to_reduce: usize,
     window_size: usize,
     hashes: HashTable<'a>,
-    subwords: Vec<HashMap<Hash, usize>>,
+    subwords: Vec<HashMap<Hash, VecDeque<usize>>>,
     partial_result: Vec<(usize, usize)>
 }
 
 impl<'a> SlidingWindow<'a> {
     pub fn new(text: &'a String, window_size: usize, max_len_to_reduce: Option<usize>) -> Self {
-        let max_len = max_len_to_reduce.unwrap_or(SlidingWindow::sqrt_usize(window_size));
+        let ws = min(window_size, text.len());
+        let max_len = min(max_len_to_reduce.unwrap_or(SlidingWindow::sqrt_usize(window_size)), ws);
+        println!("{} {}", ws, max_len);
         SlidingWindow {
             max_len_to_reduce: max_len, 
-            window_size: window_size,
+            window_size: ws,
             text: text,
             hashes: HashTable::new(text, None),
             subwords: Vec::from_iter((0..max_len).into_iter().map(|_| {HashMap::new()})),
@@ -126,11 +163,34 @@ impl<'a> SlidingWindow<'a> {
             let new_subwords_aescending = new_subwords_descending; 
             self.add_new_subwords(new_subwords_aescending);
         }
+        
+        println!("{:?}", self.partial_result);
+    }
+
+    fn remove_old_subwords(&mut self, curr_index: usize) -> () {
+        if curr_index >= self.window_size {
+            let start = curr_index - self.window_size;
+            for i in 0..self.max_len_to_reduce {
+                if start + i > self.text.len() {
+                    break;
+                }
+
+                let h = self.hashes.get_hash(start, start + i);
+                if let Some(positions) = self.subwords[i].get_mut(&h) {
+                    positions.pop_front().unwrap();
+                    if positions.len() == 0 {
+                        self.subwords[i].remove(&h);
+                    }
+                }
+                
+            }
+        }
     }
 
     fn extract_new_subwords(&self, index: usize) -> Vec<(Hash, usize)> {
+        let start = if index >= self.max_len_to_reduce {index-self.max_len_to_reduce+1} else {0};
         Vec::from_iter(
-            (max(0, index-self.max_len_to_reduce)..index)
+            (start..index+1)
             .into_iter()
             .map(|i| {
                 let h = self.hashes.get_hash(i, index);
@@ -138,50 +198,54 @@ impl<'a> SlidingWindow<'a> {
             })
         )
     }
-    
+ 
     fn update_result(&mut self, new_subwords_desc: &Vec<(Hash, usize)>, index: usize) -> () {
-        let all_sub_and_new_sub  = self.subwords.clone().into_iter().zip(new_subwords_desc.into_iter());
-        for (length, (bucket, subword)) in all_sub_and_new_sub.enumerate() {
-            if let Some(same_word_start_index) = bucket.get(&subword.0) {
-                let distance = index - same_word_start_index;
-                self.partial_result.push((distance, length));
-            } else {
-                self.partial_result.push((0, 1));
-            }
+        for (i, subword) in new_subwords_desc.iter().enumerate() {
+            let subword_length = new_subwords_desc.len() - i;
+            let bucket = &self.subwords[subword_length-1];
+            if let Some(positions) = bucket.get(&subword.0) {
+                let distance = index - positions[0] - subword_length + 1;
+                println!("d {} ind {} pos {}, sub {}", distance, index, positions[0], subword_length);
+                self.partial_result.push((distance, subword_length));
+                return
+            } 
         }
+
+        self.partial_result.push((0, 1));
     }
 
     fn add_new_subwords(&mut self, new_subwords: Vec<(Hash, usize)>) -> () {
-        for (mut bucket, subword) in self.subwords.clone().into_iter().zip(new_subwords.into_iter()) {
-            if !bucket.contains_key(&subword.0) {
-                bucket.insert(subword.0, subword.1);
+        for (i, (h, position)) in new_subwords.into_iter().enumerate() {
+            if let Some(positions) = self.subwords[i].get_mut(&h) {
+                positions.push_front(position);
+            } else {
+                self.subwords[i].insert(h, VecDeque::from_iter([position]));
             }
         }
-    }
-
-    fn remove_old_subwords(&mut self, curr_index: usize) -> () {
-        let first_char_index = curr_index - self.window_size; 
-        (1..self.max_len_to_reduce)
-        .map(|i| {self.hashes.get_hash(first_char_index, first_char_index+i)})
-        .zip(self.subwords.clone())
-        .map(|(h, mut subwords_set)| {
-            subwords_set.remove(&h);
-        });
-    }
+    }        
 
     pub fn get_result(&self) -> String {
         let mut result = ResultEncodingVec::new();
-        let mut i: usize = self.partial_result.len();
-        while i >= 0 {
-            let (dist, len) = self.partial_result[i];
+        let mut i  = self.partial_result.len() - 1;
+        loop {
+            let (dist, mut len) = self.partial_result[i as usize];
             if len >= ResultEncoding::len_treshold() {
                 result.push(ResultEncoding::Reference(dist, len));
+                if len > i {
+                    break
+                } 
+                i -= len;
+
             } else {
-                result.push(ResultEncoding::Ascii(char::from(self.text.as_bytes()[i])));
+                result.push(ResultEncoding::Ascii(char::from(self.text.as_bytes()[i as usize])));
+                if i == 0 {
+                    break;
+                }
+                i -= 1;
             }
-            i -= len;
         }
 
+        result.reverse();
         result.to_string()
     }
 
@@ -208,6 +272,6 @@ impl LZ77Compressor {
 
     pub fn decompress(&self, str: &String) -> String {
         let encoded_result = ResultEncodingVec::from_string(str);
-        encoded_result.to_string()
+        encoded_result.expand()
     } 
 }
