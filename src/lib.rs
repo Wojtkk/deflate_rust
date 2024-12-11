@@ -49,7 +49,7 @@ impl CompressionParams {
         let param = &self
             .command_line_aliases
             .get(alias)
-            .unwrap_or_else(|| { panic!("{}", self.give_help_message()) });
+            .unwrap_or_else(|| panic!("{}", self.give_help_message()));
         if let Some(old_val) = self.params.get_mut(param) {
             *old_val = Some(value);
         }
@@ -66,7 +66,8 @@ impl CompressionParams {
         let possible_options: String = self
             .command_line_aliases
             .clone()
-            .into_keys().map(|k| k + " ")
+            .into_keys()
+            .map(|k| k + " ")
             .collect();
         let t1 = "Usage is: cargo run -- [options value]";
         let t2 =

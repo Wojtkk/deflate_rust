@@ -15,11 +15,7 @@ fn hashes() {
     assert_ne!(hash_table.get_hash(1, 10), hash_table.get_hash(0, 10));
 }
 
-fn run_compression_test_case(
-    s_org: String,
-    expected_compr: String,
-    compressor: LZ77Compressor,
-) -> () {
+fn run_compression_test_case(s_org: String, expected_compr: String, compressor: LZ77Compressor) {
     let s_compr = compressor.compress(&s_org);
     let s_decompr = compressor.decompress(&s_compr);
     assert_eq!(s_compr, expected_compr);
@@ -68,7 +64,7 @@ fn compression5() {
 
 #[test]
 fn compression6() {
-    let big_word = String::from_iter([char::from('a'); 100000]);
+    let big_word = String::from_iter(['a'; 100000]);
     let s_org = big_word.clone();
     let s_compr_expected = big_word;
     let compressor_instance = LZ77Compressor::new(Some(5), Some(5));
@@ -77,7 +73,7 @@ fn compression6() {
 
 #[test]
 fn compression7() {
-    let big_word = String::from_iter([char::from('a'); 100000]);
+    let big_word = String::from_iter(['a'; 100000]);
     let s_org = big_word.clone();
     let compressor_instance = LZ77Compressor::new(Some(5), Some(5));
     let s_compr = compressor_instance.compress(&s_org);

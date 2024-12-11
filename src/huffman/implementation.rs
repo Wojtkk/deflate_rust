@@ -22,7 +22,7 @@ impl HuffmanCodes {
     }
 
     pub fn new_calc_on_text(_text: &str) -> Self {
-        HuffmanCodes::new_predefined()// TODO
+        HuffmanCodes::new_predefined() // TODO
     }
 
     fn get_predefined_mapping_on_bits() -> HashMap<char, BitVec> {

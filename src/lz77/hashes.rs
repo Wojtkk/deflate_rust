@@ -16,8 +16,7 @@ impl<'a> HashTable<'a> {
 
         HashTable {
             single_hashes: Vec::from_iter(
-                (0..hash_num)
-                    .map(|i| SingleHashTable::new(str, modulos[i], primes[i])),
+                (0..hash_num).map(|i| SingleHashTable::new(str, modulos[i], primes[i])),
             ),
         }
     }

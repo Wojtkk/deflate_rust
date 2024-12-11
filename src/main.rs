@@ -14,7 +14,7 @@ fn main() {
         let alias = &args[i];
         let value = &args[i + 1]
             .parse()
-            .unwrap_or_else(|_| { panic!("{}", compression_params.give_help_message()) });
+            .unwrap_or_else(|_| panic!("{}", compression_params.give_help_message()));
         compression_params.update(alias, *value);
     }
 
