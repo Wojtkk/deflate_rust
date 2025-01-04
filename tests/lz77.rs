@@ -3,7 +3,7 @@ use compression::lz77::LZ77Compressor;
 
 #[test]
 fn hashes() {
-    let s = String::from("abcabcbabcbb");
+    let s: Vec<u8> = Vec::from("abcabcbabcbb");
     let hash_table = HashTable::new(&s, Some(1));
 
     assert_eq!(hash_table.get_hash(0, 1), hash_table.get_hash(0, 1));
@@ -16,6 +16,8 @@ fn hashes() {
 }
 
 fn run_compression_test_case(s_org: String, expected_compr: String, compressor: LZ77Compressor) {
+    let s_org = Vec::from(s_org.as_bytes());
+    let expected_compr = Vec::from(expected_compr.as_bytes());
     let s_compr = compressor.compress(&s_org);
     let s_decompr = compressor.decompress(&s_compr);
     assert_eq!(s_compr, expected_compr);
@@ -76,7 +78,5 @@ fn compression7() {
     let big_word = String::from_iter(['a'; 100000]);
     let s_org = big_word.clone();
     let compressor_instance = LZ77Compressor::new(Some(5), Some(5));
-    let s_compr = compressor_instance.compress(&s_org);
-    let s_decompr = compressor_instance.decompress(&s_compr);
-    assert_eq!(s_org, s_decompr);
+    run_compression_test_case(s_org.clone(), s_org, compressor_instance);
 }

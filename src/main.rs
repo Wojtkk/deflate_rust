@@ -1,5 +1,6 @@
 use compression::CompressionParams;
 use compression::DeflateCompression;
+use compression::HelpDisplayer;
 use std::env;
 use std::io;
 use std::io::prelude::*;
@@ -15,11 +16,11 @@ fn main() {
             let alias = &args[i];
             let value = &args[i + 1]
                 .parse()
-                .unwrap_or_else(|_| panic!("{}", compression_params.give_help_message()));
+                .unwrap_or_else(|_| panic!("{}", HelpDisplayer::new(&compression_params)));
             compression_params.update(alias, *value);
         }
     } else {
-        println!("{}", compression_params.give_help_message());
+        println!("{}", HelpDisplayer::new(&compression_params));
     }
 
     let mut deflate_compressor = DeflateCompression::new(&compression_params);
@@ -43,7 +44,7 @@ fn main() {
 
         println!("---------------------");
         println!("To compress: {}", to_compress);
-        println!("To compressed: {}", compreseed);
+        println!("To compressed: {}", String::from_utf8(compreseed).unwrap());
         println!("To decompressed: {}", decompressed);
         println!("\n");
     }

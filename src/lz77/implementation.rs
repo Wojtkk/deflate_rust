@@ -1,5 +1,6 @@
+use itertools::Itertools;
+
 use super::hashes::{Hash, HashTable};
-use std::fmt;
 use std::{
     cmp::min,
     collections::{HashMap, VecDeque},
@@ -7,36 +8,33 @@ use std::{
 
 const DEFAULT_WINDOW_SIZE: usize = 32768;
 const DEFAULT_LEN_TRESHOLD: usize = 6;
-const DEFAULT_ASCII_NUM_OF_SEPARATOR: usize = 126;
+const DEFAULT_ASCII_NUM_OF_SEPARATOR: u8 = 126;
 
 #[derive(Clone, Debug)]
 pub enum ResultEncoding {
-    Ascii(char),
+    Ascii(u8),
     Reference(usize, usize),
 }
 
-impl fmt::Display for ResultEncoding {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let s = match self {
-            ResultEncoding::Ascii(c) => c.to_string(),
-            ResultEncoding::Reference(d, l) => {
-                let sep = ResultEncoding::get_separator().to_string();
-                [sep.clone(), d.to_string(), sep.clone(), l.to_string(), sep].concat()
-            }
-        };
-
-        write!(f, "{s}")
-    }
-}
-
 impl ResultEncoding {
-    pub fn get_separator() -> char {
-        char::from_u32(DEFAULT_ASCII_NUM_OF_SEPARATOR as u32)
-            .expect("There is no char corresponding to given number!")
+    pub fn get_separator() -> u8 {
+        DEFAULT_ASCII_NUM_OF_SEPARATOR 
     }
 
     pub fn len_treshold() -> usize {
         DEFAULT_LEN_TRESHOLD
+    }
+
+    pub fn to_ascii_bytes(&self) -> Vec<u8> {
+        let s = match self {
+            ResultEncoding::Ascii(c) => vec![*c], 
+            ResultEncoding::Reference(d, l) => {
+                let sep = vec![ResultEncoding::get_separator()];
+                [sep.clone(), d.to_string().as_bytes().to_vec(), sep.clone(), l.to_string().as_bytes().to_vec(), sep].concat().to_vec()
+            }
+        };
+
+        s
     }
 }
 
@@ -48,18 +46,6 @@ pub struct ResultEncodingVec {
 impl Default for ResultEncodingVec {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl fmt::Display for ResultEncodingVec {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let s: String = self
-            .vec
-            .clone()
-            .into_iter()
-            .map(|x| x.to_string())
-            .collect();
-        write!(f, "{s}")
     }
 }
 
@@ -76,12 +62,12 @@ impl ResultEncodingVec {
         self.vec.reverse();
     }
 
-    pub fn from_string(str: &str) -> Self {
+    pub fn from_ascii_bytes(ascii_bytes: &Vec<u8>) -> Self {
         let (mut i, mut res, sep) = (0, ResultEncodingVec::new(), ResultEncoding::get_separator());
-        while i < str.len() {
-            let c = char::from(str.as_bytes()[i]);
+        while i < ascii_bytes.len() {
+            let c = ascii_bytes[i];
             if c == sep {
-                let (enc_reference, processed_size) = ResultEncodingVec::parse_reference(str, i);
+                let (enc_reference, processed_size) = ResultEncodingVec::parse_reference(ascii_bytes, i);
                 res.push(enc_reference);
                 i += processed_size;
             } else {
@@ -93,37 +79,36 @@ impl ResultEncodingVec {
         res
     }
 
-    pub fn expand(&self) -> String {
-        let mut s = String::new();
+    pub fn expand(&self) -> Vec<u8> {
+        let mut s = Vec::new();
         self.vec
             .clone()
             .into_iter()
             .map(|e| match e {
                 ResultEncoding::Ascii(c) => {
                     s.push(c);
-                    c.to_string()
+                    vec![c]
                 }
                 ResultEncoding::Reference(d, l) => {
                     let i = s.len() - d;
                     (i..i + l)
                         .map(|j| {
-                            let c = char::from(s.as_bytes()[j]);
-                            s.push(c);
-                            c
+                            s.push(s[j]);
+                            s[j]
                         })
                         .collect()
                 }
             })
-            .collect()
+            .concat()
     }
 
-    fn parse_reference(str: &str, start_index: usize) -> (ResultEncoding, usize) {
+    fn parse_reference(ascii_bytes: &Vec<u8>, start_index: usize) -> (ResultEncoding, usize) {
         let sep = ResultEncoding::get_separator();
         let mut sep_counter = 0;
         let mut i = start_index;
         let (mut dist, mut len) = (String::new(), String::new());
         loop {
-            let c = char::from(str.as_bytes()[i]);
+            let c = ascii_bytes[i];
             if c == sep {
                 sep_counter += 1;
                 if sep_counter == 3 {
@@ -133,8 +118,8 @@ impl ResultEncodingVec {
                 continue;
             }
             match sep_counter {
-                1 => dist.push(c),
-                2 => len.push(c),
+                1 => dist.push(c as char),
+                2 => len.push(c as char),
                 _ => break,
             };
             i += 1;
@@ -143,10 +128,18 @@ impl ResultEncodingVec {
         let reference = ResultEncoding::Reference(dist.parse().unwrap(), len.parse().unwrap());
         (reference, i - start_index + 1)
     }
+
+    //fn fmt(&self) -> Vec<u8> {
+    //    self.vec
+    //        .clone()
+    //        .into_iter()
+    //        .map(|x| x.to_ascii_bytes())
+    //        .concat()
+    //}
 }
 
 struct SlidingWindow<'a> {
-    text: &'a String,
+    text: &'a Vec<u8>,
     max_len_to_reduce: usize,
     window_size: usize,
     hashes: HashTable<'a>,
@@ -155,7 +148,7 @@ struct SlidingWindow<'a> {
 }
 
 impl<'a> SlidingWindow<'a> {
-    pub fn new(text: &'a String, window_size: usize, max_len_to_reduce: Option<usize>) -> Self {
+    pub fn new(text: &'a Vec<u8>, window_size: usize, max_len_to_reduce: Option<usize>) -> Self {
         let ws = min(window_size, text.len());
         let max_len = min(
             max_len_to_reduce.unwrap_or(SlidingWindow::sqrt_usize(window_size)),
@@ -241,7 +234,7 @@ impl<'a> SlidingWindow<'a> {
         }
     }
 
-    pub fn get_result(&self) -> String {
+    pub fn get_result(&self) -> Vec<u8> {
         let mut result = ResultEncodingVec::new();
         let mut i = self.partial_result.len() - 1;
         loop {
@@ -253,7 +246,7 @@ impl<'a> SlidingWindow<'a> {
                 }
                 i -= len;
             } else {
-                result.push(ResultEncoding::Ascii(char::from(self.text.as_bytes()[i])));
+                result.push(ResultEncoding::Ascii(self.text[i]));
                 if i == 0 {
                     break;
                 }
@@ -262,7 +255,9 @@ impl<'a> SlidingWindow<'a> {
         }
 
         result.reverse();
-        result.to_string()
+        result.vec.into_iter()
+            .map(|x| x.to_ascii_bytes())
+            .concat()
     }
 }
 
@@ -279,14 +274,14 @@ impl LZ77Compressor {
         }
     }
 
-    pub fn compress(&self, str: &String) -> String {
-        let mut sw = SlidingWindow::new(str, self.window_size, self.max_len_to_reduce);
+    pub fn compress(&self, ascii_bytes: &Vec<u8>) -> Vec<u8> {
+        let mut sw = SlidingWindow::new(ascii_bytes, self.window_size, self.max_len_to_reduce);
         sw.run();
         sw.get_result()
     }
 
-    pub fn decompress(&self, str: &str) -> String {
-        let encoded_result = ResultEncodingVec::from_string(str);
+    pub fn decompress(&self, ascii_bytes: &Vec<u8>) -> Vec<u8> {
+        let encoded_result = ResultEncodingVec::from_ascii_bytes(ascii_bytes);
         encoded_result.expand()
     }
 }

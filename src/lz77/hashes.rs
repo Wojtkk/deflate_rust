@@ -8,7 +8,7 @@ pub struct HashTable<'a> {
 }
 
 impl<'a> HashTable<'a> {
-    pub fn new(str: &'a String, num_of_hash_layers: Option<usize>) -> Self {
+    pub fn new(ascii_bytes: &'a Vec<u8>, num_of_hash_layers: Option<usize>) -> Self {
         let modulos = Vec::from_iter([1000000007, 100000009, 1000000021, 100000033]);
         let primes = Vec::from_iter([27, 29, 31, 37]);
         let hash_num = num_of_hash_layers.unwrap_or(DEFAULT_NUM_OF_HASH_LAYERS);
@@ -16,7 +16,7 @@ impl<'a> HashTable<'a> {
 
         HashTable {
             single_hashes: Vec::from_iter(
-                (0..hash_num).map(|i| SingleHashTable::new(str, modulos[i], primes[i])),
+                (0..hash_num).map(|i| SingleHashTable::new(ascii_bytes, modulos[i], primes[i])),
             ),
         }
     }
@@ -34,18 +34,18 @@ impl<'a> HashTable<'a> {
 pub struct Hash(Vec<usize>);
 
 pub struct SingleHashTable<'a> {
-    text: &'a String,
+    text: &'a Vec<u8>,
     pref: Vec<u32>,
     pow: Vec<u32>,
     modulo: u64,
 }
 
 impl<'a> SingleHashTable<'a> {
-    pub fn new(str: &'a String, m: u64, p: u64) -> Self {
-        let pows = SingleHashTable::calc_pow(str.len(), m, p);
-        let prefs = SingleHashTable::calc_pref(str, &pows, m);
+    pub fn new(ascii_bytes: &'a Vec<u8>, m: u64, p: u64) -> Self {
+        let pows = SingleHashTable::calc_pow(ascii_bytes.len(), m, p);
+        let prefs = SingleHashTable::calc_pref(ascii_bytes, &pows, m);
         SingleHashTable {
-            text: str,
+            text: ascii_bytes,
             pref: prefs,
             pow: pows,
             modulo: m,
@@ -62,12 +62,12 @@ impl<'a> SingleHashTable<'a> {
             .collect()
     }
 
-    fn calc_pref(str: &str, pows: &[u32], m: u64) -> Vec<u32> {
+    fn calc_pref(ascii_bytes: &Vec<u8>, pows: &[u32], m: u64) -> Vec<u32> {
         let mut x: u64 = 0;
         pows.iter()
-            .zip(str.chars())
+            .zip(ascii_bytes)
             .map(|(&p, c)| {
-                x = (x + p as u64 * (c as u64)) % m;
+                x = (x + p as u64 * (*c as u64)) % m;
                 x as u32
             })
             .collect()

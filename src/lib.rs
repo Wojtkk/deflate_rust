@@ -2,13 +2,13 @@ pub mod huffman;
 pub mod lz77;
 pub mod utils;
 
+use core::fmt;
 use std::collections::HashMap;
 
 use huffman::HuffmanCompressor;
 use lz77::LZ77Compressor;
+use fstrings::{format_f, format_args_f};
 
-#[macro_use]
-extern crate fstrings;
 
 #[derive(Hash, PartialEq, Eq, Clone)]
 pub enum Params {
@@ -24,6 +24,37 @@ impl Params {
             Params::MaxBlockSize => "Max length of word we will spot in sliding window.",
             Params::CodesPredef => "If 1 then huffman codes will be predefined, otherwise we will calculate it according to the given text.",
         }
+    }
+}
+
+pub struct HelpDisplayer<'a> {
+    command_line_aliases: &'a HashMap<String, Params>,
+}
+
+impl<'a> HelpDisplayer<'a> {
+
+    pub fn new(compression_params: &'a CompressionParams) -> Self {
+        HelpDisplayer {
+           command_line_aliases: &compression_params.command_line_aliases, 
+        }
+    }
+}
+
+impl<'a> fmt::Display for HelpDisplayer<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let info = "INFO:";
+        let sep = "-----------------------\n";
+        let possible_options: String = self
+            .command_line_aliases
+            .clone()
+            .into_iter()
+            .map(|(k, v)| k + ": " + v.explain() + "\n")
+            .collect();
+        let t1 = "Usage is: cargo run -- [options value]";
+        let t2 = &format_f!("Possible 'options' are:\n{possible_options}    Value should be an integer");
+
+        let message = [info, sep, t1, t2, sep].join("\n");
+        write!(f, "{}", message)
     }
 }
 
@@ -59,7 +90,7 @@ impl CompressionParams {
         let param = &self
             .command_line_aliases
             .get(alias)
-            .unwrap_or_else(|| panic!("{}", self.give_help_message()));
+            .unwrap_or_else(|| panic!("{}", HelpDisplayer::new(self)));
         if let Some(old_val) = self.params.get_mut(param) {
             *old_val = Some(value);
         }
@@ -68,21 +99,6 @@ impl CompressionParams {
     #[allow(dead_code)]
     pub fn get_param(&self, param: &Params) -> Option<usize> {
         *self.params.get(param).unwrap()
-    }
-
-    pub fn give_help_message(&self) -> String {
-        let info = "INFO:";
-        let sep = "-----------------------\n";
-        let possible_options: String = self
-            .command_line_aliases
-            .clone()
-            .into_iter()
-            .map(|(k, v)| k + ": " + v.explain() + "\n")
-            .collect();
-        let t1 = "Usage is: cargo run -- [options value]";
-        let t2 = &f!("Possible 'options' are:\n{possible_options}    Value should be an integer");
-
-        [info, sep, t1, t2, sep].join("\n")
     }
 }
 
@@ -103,15 +119,17 @@ impl DeflateCompression {
         }
     }
 
-    pub fn deflate_compress(&mut self, text: &String) -> String {
-        let lz77_output: String = self.lz77_compressor.compress(text);
+    pub fn deflate_compress(&mut self, text: &String) -> Vec<u8> {
+        let text = Vec::from(text.as_bytes());
+        let lz77_output  = self.lz77_compressor.compress(&text);
         lz77_output
         //self.huffman_compressor.compress(&lz77_output)
         // This would be the second part :DD
     }
 
-    pub fn deflate_decompress(&self, text: &str) -> String {
-        self.lz77_compressor.decompress(text)
+    pub fn deflate_decompress(&self, text: &Vec<u8>) -> String {
+        let decompressed_bytes = self.lz77_compressor.decompress(text);
+        String::from_utf8(decompressed_bytes).unwrap()
         // self.lz77_compressor.decompress(&huffman_decompressed)
         // This would be the second part :DD
     }
