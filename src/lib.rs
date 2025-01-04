@@ -5,10 +5,9 @@ pub mod utils;
 use core::fmt;
 use std::collections::HashMap;
 
+use fstrings::{format_args_f, format_f};
 use huffman::HuffmanCompressor;
 use lz77::LZ77Compressor;
-use fstrings::{format_f, format_args_f};
-
 
 #[derive(Hash, PartialEq, Eq, Clone)]
 pub enum Params {
@@ -32,10 +31,9 @@ pub struct HelpDisplayer<'a> {
 }
 
 impl<'a> HelpDisplayer<'a> {
-
     pub fn new(compression_params: &'a CompressionParams) -> Self {
         HelpDisplayer {
-           command_line_aliases: &compression_params.command_line_aliases, 
+            command_line_aliases: &compression_params.command_line_aliases,
         }
     }
 }
@@ -51,7 +49,8 @@ impl<'a> fmt::Display for HelpDisplayer<'a> {
             .map(|(k, v)| k + ": " + v.explain() + "\n")
             .collect();
         let t1 = "Usage is: cargo run -- [options value]";
-        let t2 = &format_f!("Possible 'options' are:\n{possible_options}    Value should be an integer");
+        let t2 =
+            &format_f!("Possible 'options' are:\n{possible_options}    Value should be an integer");
 
         let message = [info, sep, t1, t2, sep].join("\n");
         write!(f, "{}", message)
@@ -121,13 +120,13 @@ impl DeflateCompression {
 
     pub fn deflate_compress(&mut self, text: &String) -> Vec<u8> {
         let text = Vec::from(text.as_bytes());
-        let lz77_output  = self.lz77_compressor.compress(&text);
-        lz77_output
+
+        self.lz77_compressor.compress(&text)
         //self.huffman_compressor.compress(&lz77_output)
         // This would be the second part :DD
     }
 
-    pub fn deflate_decompress(&self, text: &Vec<u8>) -> String {
+    pub fn deflate_decompress(&self, text: &[u8]) -> String {
         let decompressed_bytes = self.lz77_compressor.decompress(text);
         String::from_utf8(decompressed_bytes).unwrap()
         // self.lz77_compressor.decompress(&huffman_decompressed)

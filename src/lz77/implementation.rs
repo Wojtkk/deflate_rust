@@ -18,7 +18,7 @@ pub enum ResultEncoding {
 
 impl ResultEncoding {
     pub fn get_separator() -> u8 {
-        DEFAULT_ASCII_NUM_OF_SEPARATOR 
+        DEFAULT_ASCII_NUM_OF_SEPARATOR
     }
 
     pub fn len_treshold() -> usize {
@@ -27,10 +27,18 @@ impl ResultEncoding {
 
     pub fn to_ascii_bytes(&self) -> Vec<u8> {
         let s = match self {
-            ResultEncoding::Ascii(c) => vec![*c], 
+            ResultEncoding::Ascii(c) => vec![*c],
             ResultEncoding::Reference(d, l) => {
                 let sep = vec![ResultEncoding::get_separator()];
-                [sep.clone(), d.to_string().as_bytes().to_vec(), sep.clone(), l.to_string().as_bytes().to_vec(), sep].concat().to_vec()
+                [
+                    sep.clone(),
+                    d.to_string().as_bytes().to_vec(),
+                    sep.clone(),
+                    l.to_string().as_bytes().to_vec(),
+                    sep,
+                ]
+                .concat()
+                .to_vec()
             }
         };
 
@@ -62,12 +70,13 @@ impl ResultEncodingVec {
         self.vec.reverse();
     }
 
-    pub fn from_ascii_bytes(ascii_bytes: &Vec<u8>) -> Self {
+    pub fn from_ascii_bytes(ascii_bytes: &[u8]) -> Self {
         let (mut i, mut res, sep) = (0, ResultEncodingVec::new(), ResultEncoding::get_separator());
         while i < ascii_bytes.len() {
             let c = ascii_bytes[i];
             if c == sep {
-                let (enc_reference, processed_size) = ResultEncodingVec::parse_reference(ascii_bytes, i);
+                let (enc_reference, processed_size) =
+                    ResultEncodingVec::parse_reference(ascii_bytes, i);
                 res.push(enc_reference);
                 i += processed_size;
             } else {
@@ -102,7 +111,7 @@ impl ResultEncodingVec {
             .concat()
     }
 
-    fn parse_reference(ascii_bytes: &Vec<u8>, start_index: usize) -> (ResultEncoding, usize) {
+    fn parse_reference(ascii_bytes: &[u8], start_index: usize) -> (ResultEncoding, usize) {
         let sep = ResultEncoding::get_separator();
         let mut sep_counter = 0;
         let mut i = start_index;
@@ -128,14 +137,6 @@ impl ResultEncodingVec {
         let reference = ResultEncoding::Reference(dist.parse().unwrap(), len.parse().unwrap());
         (reference, i - start_index + 1)
     }
-
-    //fn fmt(&self) -> Vec<u8> {
-    //    self.vec
-    //        .clone()
-    //        .into_iter()
-    //        .map(|x| x.to_ascii_bytes())
-    //        .concat()
-    //}
 }
 
 struct SlidingWindow<'a> {
@@ -255,9 +256,7 @@ impl<'a> SlidingWindow<'a> {
         }
 
         result.reverse();
-        result.vec.into_iter()
-            .map(|x| x.to_ascii_bytes())
-            .concat()
+        result.vec.into_iter().map(|x| x.to_ascii_bytes()).concat()
     }
 }
 
@@ -280,7 +279,7 @@ impl LZ77Compressor {
         sw.get_result()
     }
 
-    pub fn decompress(&self, ascii_bytes: &Vec<u8>) -> Vec<u8> {
+    pub fn decompress(&self, ascii_bytes: &[u8]) -> Vec<u8> {
         let encoded_result = ResultEncodingVec::from_ascii_bytes(ascii_bytes);
         encoded_result.expand()
     }
