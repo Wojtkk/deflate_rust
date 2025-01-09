@@ -1,3 +1,4 @@
+use compression::utils::TypeOr;
 use compression::CompressionParams;
 use compression::DeflateCompression;
 use compression::HelpDisplayer;
@@ -41,10 +42,14 @@ fn main() {
 
         let compreseed = deflate_compressor.deflate_compress(&to_compress);
         let decompressed = deflate_compressor.deflate_decompress(&compreseed);
+        let compressed = match compreseed {
+            TypeOr::Left(bits) => bits.to_string(),
+            TypeOr::Right(bytes) => String::from_utf8(bytes).unwrap()
+        };
 
         println!("---------------------");
         println!("To compress: {}", to_compress);
-        println!("To compressed: {}", String::from_utf8(compreseed).unwrap());
+        println!("To compressed: {}", compressed);
         println!("To decompressed: {}", decompressed);
         println!("\n");
     }

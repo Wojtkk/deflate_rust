@@ -5,4 +5,5 @@ mod weights;
 
 pub use implementation::HuffmanCodes;
 pub use implementation::HuffmanCompressor;
+pub use trees::HuffmanTree;
 

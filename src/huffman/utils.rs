@@ -1,8 +1,9 @@
 
-pub fn calc_distinct_symbols_num(bytes: &Vec<u8>) -> usize {
+pub fn calc_distinct_symbols_num(bytes: &Vec<u8>) -> u8 {
     let mut bytes = bytes.clone();
+    bytes.sort();
     bytes.dedup();
-    bytes.len()
+    bytes.len() as u8
 }
 
 pub fn set_last_bit(x: u8, b: bool) -> u8 {

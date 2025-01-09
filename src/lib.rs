@@ -80,14 +80,18 @@ impl CompressionParams {
         let mut default_params: HashMap<Params, Option<usize>> = HashMap::new();
         default_params.insert(Params::WindowSize, None);
         default_params.insert(Params::MaxBlockSize, None);
-        default_params.insert(Params::CodesPredef, None);
+        default_params.insert(Params::CodesPredef, Some(0));
         default_params.insert(Params::CPUCores, Some(1));
+        default_params.insert(Params::ApplyHuffman, Some(1));
+        default_params.insert(Params::ApplyLZ77, Some(1));
 
         let mut aliases: HashMap<String, Params> = HashMap::new();
         aliases.insert("-window_size".to_string(), Params::WindowSize);
         aliases.insert("-max_len_of_block".to_string(), Params::MaxBlockSize);
         aliases.insert("-codes_predef".to_string(), Params::CodesPredef);
-        aliases.insert("-codes_predef".to_string(), Params::CPUCores);
+        aliases.insert("-cores".to_string(), Params::CPUCores);
+        aliases.insert("-huff".to_string(), Params::ApplyHuffman);
+        aliases.insert("-lz77".to_string(), Params::ApplyLZ77);
         Self {
             command_line_aliases: aliases,
             params: default_params,
@@ -108,11 +112,6 @@ impl CompressionParams {
     pub fn get_param(&self, param: &Params) -> Option<usize> {
         *self.params.get(param).unwrap()
     }
-}
-
-enum TypeOr<S, T> {
-    Left(S),
-    Right(T),
 }
 
 #[warn(dead_code)]
@@ -138,26 +137,27 @@ impl DeflateCompression {
         }
     }
 
-    pub fn deflate_compress(&mut self, text: &String) ->  TypeOr<BitVec, Vec<u8>> {
+    pub fn deflate_compress(&mut self, text: &String) ->  utils::TypeOr<BitVec, Vec<u8>> {
         let mut result = Vec::from(text.as_bytes());
         if self.apply_lz77 {
             result = self.lz77_compressor.compress(&result);
         }
 
         if self.apply_huffman {
-            return TypeOr::Left(HuffmanCompressor::compress(&result,
+            return utils::TypeOr::Left(HuffmanCompressor::compress(&result,
                 self.huffman_codes_predefined))
         }
-        TypeOr::Right(result)
+        utils::TypeOr::Right(result)
     }
 
-    pub fn deflate_decompress(&self, seq: &mut TypeOr<BitVec, Vec<u8>>) -> String {
+    pub fn deflate_decompress(&self, seq: &utils::TypeOr<BitVec, Vec<u8>>) -> String {
         let result = match seq {
-            //TypeOr::Left(bits) => self.huffman_compressor.decompress(bits),
-            TypeOr::Left(bits) => HuffmanCompressor::decompress(bits),
-            TypeOr::Right(bytes) => bytes.clone(),
+            //utils::TypeOr::Left(bits) => self.huffman_compressor.decompress(bits),
+            utils::TypeOr::Left(bits) => HuffmanCompressor::decompress(bits),
+            utils::TypeOr::Right(bytes) => bytes.clone(),
         };  
 
+        println!("{}", String::from_utf8(result.clone()).unwrap());
         if self.apply_lz77 {
             return String::from_utf8(self.lz77_compressor.decompress(&result)).unwrap()
         }

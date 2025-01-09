@@ -18,7 +18,7 @@ impl WeightsCalculator {
 
     pub fn fitted_to_text(bytes: &Vec<u8>) -> HashMap<u8, u8> {
         let mut symbol_counter: HashMap<&u8, usize> = HashMap::new(); 
-        bytes.into_iter().map(|s| {
+        bytes.into_iter().for_each(|s| {
             match symbol_counter.get(s) {
                 Some(count) => { symbol_counter.insert(s, count + 1); },
                 None => { symbol_counter.insert(s, 1); }
@@ -26,7 +26,7 @@ impl WeightsCalculator {
         });
 
         let count_max = symbol_counter.values().max().unwrap(); 
-        let scaler = count_max / u8::MAX as usize;
+        let scaler = count_max / u8::MAX as usize + 1;
 
         symbol_counter.into_iter().map(|(symbol, occurences)| {
             (*symbol, (occurences / scaler) as u8)
