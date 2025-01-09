@@ -101,3 +101,11 @@ fn test_huffman_3() {
     let decompressed = huffman::HuffmanCompressor::decompress(&compressed);
     assert_eq!(s, decompressed);
 }
+#[test]
+fn test_huffman_4() {
+    let s: Vec<u8> = Vec::from("abcdefghijklmonprstuwvxyzABCDEFGHIJKLMNOPRSTUWVXYZ1234567890!@#$%^&*((_+");
+    let compressed = huffman::HuffmanCompressor::compress(&s, true);
+    println!("{}", compressed);
+    let decompressed = huffman::HuffmanCompressor::decompress(&compressed);
+    assert_eq!(s, decompressed);
+}
