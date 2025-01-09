@@ -1,5 +1,6 @@
 use::std::collections::HashMap;
 use std::u8;
+use std::cmp::max;
 pub struct WeightsCalculator {
 
 }
@@ -29,7 +30,7 @@ impl WeightsCalculator {
         let scaler = count_max / u8::MAX as usize + 1;
 
         symbol_counter.into_iter().map(|(symbol, occurences)| {
-            (*symbol, (occurences / scaler) as u8)
+            (*symbol, max((occurences / scaler) as u8, 1))
         })
         .collect()
     }

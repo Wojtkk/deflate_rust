@@ -1,71 +1,113 @@
 use bit_vec::BitVec;
 use std::collections::HashMap;
+use std::cmp::min;
 
+#[derive(Hash, Eq, PartialEq, PartialOrd, Clone)]
 pub struct HuffmanTree {
-
+    val: Option<u8>,
+    whole_tree_min_val: u8,
+    weigths_sum: usize, 
+    left: Option<Box<HuffmanTree>>,
+    right: Option<Box<HuffmanTree>>,
 }
 
 impl HuffmanTree {
+    pub fn single_node(val: u8, weights_sum: usize) -> Self {  
+        HuffmanTree {
+            val: Some(val),
+            whole_tree_min_val: val,
+            weigths_sum: weights_sum,
+            left: None,
+            right: None,
+        }
+    }
+
+    pub fn merge_right(&mut self, tree: HuffmanTree) -> Self {
+        HuffmanTree {
+            val: None, 
+            whole_tree_min_val: min(self.whole_tree_min_val, tree.whole_tree_min_val),
+            weigths_sum: self.weigths_sum + tree.weigths_sum,
+            left: Some(Box::new((*self).clone())),
+            right: Some(Box::new(tree))
+        }
+    } 
+
+    pub fn extract_mapping(&self) -> HashMap<u8, BitVec> {
+        let mut mapping = HashMap::new();
+        let mut prev_bits = BitVec::from_elem(1, true);
+        self.recursive_extract_mapping(&mut prev_bits, &mut mapping);
+        mapping
+    }
+
+    fn recursive_extract_mapping(&self, prev_bits: &mut BitVec, mapping: &mut HashMap<u8, BitVec>) {
+        if let Some(val) = self.val {
+            println!("plse {}", val);
+            println!("{}", prev_bits);
+            mapping.insert(val, prev_bits.clone());
+        };
+
+        if let Some(t) = &self.left {
+            prev_bits.push(false);
+            t.recursive_extract_mapping(prev_bits, mapping);
+            prev_bits.pop();
+        };
+
+        if let Some(t) = &self.right {
+            prev_bits.push(true);
+            t.recursive_extract_mapping(prev_bits, mapping);
+            prev_bits.pop();
+        };
+    } 
+} 
+
+
+pub struct HuffmanTreeCreator; 
+
+impl HuffmanTreeCreator {
     pub fn get_mappings(weights: &HashMap<u8, u8>) -> (HashMap<u8, BitVec>, HashMap<BitVec, u8>) {
-        let on_bits = HuffmanTree::get_mapping_on_bits(weights);
-        let on_bytes = HuffmanTree::get_mapping_on_bytes(weights);
+        let on_bits = HuffmanTreeCreator::get_mapping_on_bits(weights);
+        let on_bytes = HuffmanTreeCreator::get_mapping_on_bytes(weights);
         (on_bits, on_bytes)
     }
 
-    pub fn get_mapping_on_bits(_weights: &HashMap<u8, u8>) -> HashMap<u8, BitVec> {
-        let mut mapping = HashMap::new();
-        mapping.insert('a' as u8, BitVec::from_elem(4, false));  // 0001
-        mapping.get_mut(&('a' as u8)).unwrap().set(3, true);
-        mapping.insert('b' as u8, BitVec::from_elem(4, false));  // 0010
-        mapping.get_mut(&('b' as u8)).unwrap().set(2, true);
-        mapping.insert('c' as u8, BitVec::from_elem(4, false));  // 0011
-        mapping.get_mut(&('c' as u8)).unwrap().set(2, true);
-        mapping.get_mut(&('c' as u8)).unwrap().set(3, true);
-        mapping.insert('~' as u8, BitVec::from_elem(3, false));  // 011
-        mapping.get_mut(&('~' as u8)).unwrap().set(1, true);
-        mapping.get_mut(&('~' as u8)).unwrap().set(2, true);
+    pub fn get_mapping_on_bits(weights: &HashMap<u8, u8>) -> HashMap<u8, BitVec> {
+        assert!(weights.len() > 0);
+        let mut trees_seq = (*weights).clone().into_iter().map(|(byte, w)| {
+            HuffmanTree::single_node(byte, w as usize)
+        })
+        .collect::<Vec<HuffmanTree>>();
 
-        mapping.insert('0' as u8, BitVec::from_elem(4, false));  // 1000
-        mapping.get_mut(&('0' as u8)).unwrap().set(0, true);
-        mapping.insert('1' as u8, BitVec::from_elem(4, false));  // 1001
-        mapping.get_mut(&('1' as u8)).unwrap().set(0, true);
-        mapping.get_mut(&('1' as u8)).unwrap().set(3, true);
-        mapping.insert('2' as u8, BitVec::from_elem(4, false));  // 1010
-        mapping.get_mut(&('2' as u8)).unwrap().set(0, true);
-        mapping.get_mut(&('2' as u8)).unwrap().set(2, true);
-        mapping.insert('3' as u8, BitVec::from_elem(4, false));  // 1011
-        mapping.get_mut(&('3' as u8)).unwrap().set(0, true);
-        mapping.get_mut(&('3' as u8)).unwrap().set(2, true);
-        mapping.get_mut(&('3' as u8)).unwrap().set(3, true);
-        mapping.insert('4' as u8, BitVec::from_elem(4, false));  // 1100
-        mapping.get_mut(&('4' as u8)).unwrap().set(0, true);
-        mapping.get_mut(&('4' as u8)).unwrap().set(1, true);
-        mapping.insert('5' as u8, BitVec::from_elem(4, false));  // 1101
-        mapping.get_mut(&('5' as u8)).unwrap().set(0, true);
-        mapping.get_mut(&('5' as u8)).unwrap().set(1, true);
-        mapping.get_mut(&('5' as u8)).unwrap().set(3, true);
-        mapping.insert('6' as u8, BitVec::from_elem(4, false));  // 1110
-        mapping.get_mut(&('6' as u8)).unwrap().set(0, true);
-        mapping.get_mut(&('6' as u8)).unwrap().set(1, true);
-        mapping.get_mut(&('6' as u8)).unwrap().set(2, true);
-        mapping.insert('7' as u8, BitVec::from_elem(4, false));  // 1111
-        mapping.get_mut(&('7' as u8)).unwrap().set(0, true);
-        mapping.get_mut(&('7' as u8)).unwrap().set(1, true);
-        mapping.get_mut(&('7' as u8)).unwrap().set(2, true);
-        mapping.get_mut(&('7' as u8)).unwrap().set(3, true);
-        mapping.insert('8' as u8, BitVec::from_elem(5, false));  // 01010
-        mapping.get_mut(&('8' as u8)).unwrap().set(1, true);
-        mapping.get_mut(&('8' as u8)).unwrap().set(3, true);
-        mapping.insert('9' as u8, BitVec::from_elem(5, false));  // 01011
-        mapping.get_mut(&('9' as u8)).unwrap().set(1, true);
-        mapping.get_mut(&('9' as u8)).unwrap().set(3, true);
-        mapping.get_mut(&('9' as u8)).unwrap().set(4, true);
+        let operations_num = trees_seq.len() - 1;
+        for _ in 0..operations_num {
+            let mut tree_left = HuffmanTreeCreator::get_and_rm_next_elem(&mut trees_seq); 
+            let tree_right = HuffmanTreeCreator::get_and_rm_next_elem(&mut trees_seq);
+            
+            let new_tree = tree_left.merge_right(tree_right);
+            trees_seq.push(new_tree);
+        }
 
-        mapping
-    } 
+        trees_seq[0].extract_mapping()
+    }
+
+    fn get_and_rm_next_elem(trees_seq: &mut Vec<HuffmanTree>) -> HuffmanTree {
+        let mut index = usize::default();
+        let mut min_w = usize::MAX;
+        let mut min_val = u8::MAX;
+
+        trees_seq.iter().enumerate().for_each(|(i, t)| {
+            if min_w > t.weigths_sum || (min_w == t.weigths_sum && min_val > t.whole_tree_min_val) {
+                min_w = t.weigths_sum;
+                min_val = t.whole_tree_min_val;
+                index = i;
+            }
+        });
+
+        println!("removed lol {}", trees_seq[index].whole_tree_min_val);
+        trees_seq.remove(index)
+    }
 
     pub fn get_mapping_on_bytes(weights: &HashMap<u8, u8>) -> HashMap<BitVec, u8> {
-        let on_bits = HuffmanTree::get_mapping_on_bits(weights);
+        let on_bits = HuffmanTreeCreator::get_mapping_on_bits(weights);
         on_bits.into_iter().map(|(byte, bit)| {
             (bit, byte)
         })
