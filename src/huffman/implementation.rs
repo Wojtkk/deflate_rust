@@ -8,76 +8,77 @@ use std::collections::HashMap;
 use bit_vec::BitVec;
 use itertools::Itertools;
 
-use super::{utils, trees::HuffmanTreeCreator, weights::WeightsCalculator};
+use super::{trees::HuffmanTreeCreator, utils, weights::WeightsCalculator};
 
 pub struct HuffmanCodes {
     symbols_weights: HashMap<u8, u8>,
-    symbols_num: Option<u8>, 
+    symbols_num: Option<u8>,
     mapping_on_bits: HashMap<u8, BitVec>,
     mapping_on_bytes: HashMap<BitVec, u8>,
 }
 
 impl HuffmanCodes {
-    pub fn new_predefined(bytes: &Vec<u8>) -> Self {
+    pub fn new_predefined(bytes: &[u8]) -> Self {
         let weights = WeightsCalculator::default();
         let (on_bits, on_bytes) = HuffmanTreeCreator::get_mappings(&weights);
         HuffmanCodes {
-            symbols_weights: weights, 
-            symbols_num: Some(utils::calc_distinct_symbols_num(bytes)), 
+            symbols_weights: weights,
+            symbols_num: Some(utils::calc_distinct_symbols_num(bytes)),
             mapping_on_bits: on_bits,
-            mapping_on_bytes: on_bytes, 
+            mapping_on_bytes: on_bytes,
         }
     }
 
-    pub fn new_calc_on_bytes(bytes: &Vec<u8>) -> Self {
+    pub fn new_calc_on_bytes(bytes: &[u8]) -> Self {
         let weights = WeightsCalculator::fitted_to_text(bytes);
         println!("weights {:#?}", weights);
         let (on_bits, on_bytes) = HuffmanTreeCreator::get_mappings(&weights);
         HuffmanCodes {
             symbols_weights: weights,
             symbols_num: Some(utils::calc_distinct_symbols_num(bytes)),
-            mapping_on_bits: on_bits, 
-            mapping_on_bytes: on_bytes, 
+            mapping_on_bits: on_bits,
+            mapping_on_bytes: on_bytes,
         }
     }
 
     pub fn new_from_compression_result(compression_result_bits: &BitVec) -> Self {
-        let weights = HuffmanCodes::extract_weights_from_compression_result(compression_result_bits);
+        let weights =
+            HuffmanCodes::extract_weights_from_compression_result(compression_result_bits);
         println!("weights {:#?}", weights);
         let symbols_num = weights.len();
         let (on_bits, on_bytes) = HuffmanTreeCreator::get_mappings(&weights);
         HuffmanCodes {
             symbols_weights: weights,
-            symbols_num: Some(symbols_num as u8), 
-            mapping_on_bits: on_bits, 
-            mapping_on_bytes: on_bytes, 
+            symbols_num: Some(symbols_num as u8),
+            mapping_on_bits: on_bits,
+            mapping_on_bytes: on_bytes,
         }
     }
 
-    fn extract_weights_from_compression_result(compression_result_bits: &BitVec) -> HashMap<u8, u8> {
+    fn extract_weights_from_compression_result(
+        compression_result_bits: &BitVec,
+    ) -> HashMap<u8, u8> {
         let bytes = compression_result_bits.to_bytes();
-        let encoding_weights_space: usize = bytes[0] as usize; 
+        let encoding_weights_space: usize = bytes[0] as usize;
         let version_bit = encoding_weights_space < ASCII_SZ as usize;
         println!("xd {}", encoding_weights_space);
 
         if version_bit {
-            (1..encoding_weights_space+1).step_by(2).map(|i| {
-                (bytes[i], bytes[i+1])
-            })
-            .filter(|(_, weight)| *weight > 0)
-            .collect()
-        }
-        else {
+            (1..encoding_weights_space + 1)
+                .step_by(2)
+                .map(|i| (bytes[i], bytes[i + 1]))
+                .filter(|(_, weight)| *weight > 0)
+                .collect()
+        } else {
             println!("version bit is false!");
-            (1..encoding_weights_space).map(|i| {
-               (i as u8 - 1 as u8, bytes[i]) 
-            })
-            .filter(|(_, weight)| *weight > 0)
-            .collect()
+            (1..encoding_weights_space)
+                .map(|i| (i as u8 - 1_u8, bytes[i]))
+                .filter(|(_, weight)| *weight > 0)
+                .collect()
         }
     }
 
-    pub fn append_weights_encoding_tree(&self, bits: BitVec) ->  BitVec {
+    pub fn append_weights_encoding_tree(&self, bits: BitVec) -> BitVec {
         let symbols_num_in_seq = self.symbols_num.unwrap();
 
         let mut result = BitVec::new();
@@ -90,18 +91,18 @@ impl HuffmanCodes {
         result.extend(BitVec::from_bytes(&[encoding_bytes_space]));
 
         let weights: Vec<u8> = if symbols_num_in_seq >= HALF_ASCII_SZ {
-            (0..ASCII_SZ).map(|i| {
-                *(self.symbols_weights.get(&i)).unwrap_or(&0)
-            })
-            .collect()
+            (0..ASCII_SZ)
+                .map(|i| *(self.symbols_weights.get(&i)).unwrap_or(&0))
+                .collect()
         } else {
-            self.symbols_weights.clone().into_iter().map(|(symbol, weight)| {
-                vec![symbol, weight]
-            })
-            .concat()
+            self.symbols_weights
+                .clone()
+                .into_iter()
+                .map(|(symbol, weight)| vec![symbol, weight])
+                .concat()
         };
 
-        result.extend(BitVec::from_bytes(&weights));   
+        result.extend(BitVec::from_bytes(&weights));
         result.extend(bits);
 
         result
@@ -109,12 +110,11 @@ impl HuffmanCodes {
 
     pub fn remove_weights_enconding(bits: &BitVec) -> BitVec {
         let bytes = bits.to_bytes();
-        let mut encoding_weights_space: usize = bytes[0] as usize + 1; 
+        let mut encoding_weights_space: usize = bytes[0] as usize + 1;
         encoding_weights_space *= NUM_OF_BITS_IN_BYTE as usize;
-        (encoding_weights_space..bits.len()).map(|i|{
-            bits.get(i).unwrap()
-        })
-        .collect()
+        (encoding_weights_space..bits.len())
+            .map(|i| bits.get(i).unwrap())
+            .collect()
     }
 
     pub fn map_on_bits(&self, c: u8) -> BitVec {
@@ -131,7 +131,6 @@ impl HuffmanCodes {
             }
         }
 
-
         for (key, value) in &self.mapping_on_bytes {
             println!("{}: {} \n", key, value);
         }
@@ -145,12 +144,11 @@ impl HuffmanCompressor {
     pub fn compress(ascii_bytes: &Vec<u8>, predefined_codes: bool) -> BitVec {
         let huffman_codes = match predefined_codes {
             true => HuffmanCodes::new_predefined(ascii_bytes),
-            false => HuffmanCodes::new_calc_on_bytes(ascii_bytes)
+            false => HuffmanCodes::new_calc_on_bytes(ascii_bytes),
         };
 
         let mut encoded_input = BitVec::new();
         for c in ascii_bytes {
-
             let char_bits = huffman_codes.map_on_bits(*c);
             println!("char bits {}", char_bits);
             encoded_input.extend(char_bits);
@@ -164,21 +162,21 @@ impl HuffmanCompressor {
 
     pub fn decompress(bits: &BitVec) -> Vec<u8> {
         let huffman_codes = HuffmanCodes::new_from_compression_result(bits);
-        let bits = HuffmanCodes::remove_weights_enconding(bits);  
+        let bits = HuffmanCodes::remove_weights_enconding(bits);
         println!("bits without weights {}", bits);
         let mut index: usize = 0;
         let mut chars: Vec<u8> = Vec::new();
         while index < bits.len() {
-            let end: usize = min(index + huffman_codes.symbols_num.unwrap() as usize * NUM_OF_BITS_IN_BYTE as usize + 1000, bits.len());
-            let slice: BitVec = (index..end).map(|i| {
-                bits.get(i).unwrap()
-            })
-            .collect();
+            let end: usize = min(
+                index + huffman_codes.symbols_num.unwrap() as usize * NUM_OF_BITS_IN_BYTE as usize,
+                bits.len(),
+            );
+            let slice: BitVec = (index..end).map(|i| bits.get(i).unwrap()).collect();
 
             let (c, increment) = huffman_codes.match_bits(&slice);
-            println!("start end {} {}", index, end);
-            println!("xd {}", String::from_utf8(chars.clone()).unwrap());
-            chars.push(c.expect("Bits in decompressed sequence do not match any char for current huffman codes."));
+            chars.push(c.expect(
+                "Bits in decompressed sequence do not match any char for current huffman codes.",
+            ));
             index += increment;
         }
 

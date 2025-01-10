@@ -1,5 +1,5 @@
-use compression::DeflateCompression;
 use compression::CompressionParams;
+use compression::DeflateCompression;
 
 #[test]
 fn test_deflate_1() {

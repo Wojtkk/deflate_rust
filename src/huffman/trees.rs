@@ -1,18 +1,18 @@
 use bit_vec::BitVec;
-use std::collections::HashMap;
 use std::cmp::min;
+use std::collections::HashMap;
 
 #[derive(Hash, Eq, PartialEq, PartialOrd, Clone)]
 pub struct HuffmanTree {
     val: Option<u8>,
     whole_tree_min_val: u8,
-    weigths_sum: usize, 
+    weigths_sum: usize,
     left: Option<Box<HuffmanTree>>,
     right: Option<Box<HuffmanTree>>,
 }
 
 impl HuffmanTree {
-    pub fn single_node(val: u8, weights_sum: usize) -> Self {  
+    pub fn single_node(val: u8, weights_sum: usize) -> Self {
         HuffmanTree {
             val: Some(val),
             whole_tree_min_val: val,
@@ -24,13 +24,13 @@ impl HuffmanTree {
 
     pub fn merge_right(&mut self, tree: HuffmanTree) -> Self {
         HuffmanTree {
-            val: None, 
+            val: None,
             whole_tree_min_val: min(self.whole_tree_min_val, tree.whole_tree_min_val),
             weigths_sum: self.weigths_sum + tree.weigths_sum,
             left: Some(Box::new((*self).clone())),
-            right: Some(Box::new(tree))
+            right: Some(Box::new(tree)),
         }
-    } 
+    }
 
     pub fn extract_mapping(&self) -> HashMap<u8, BitVec> {
         let mut mapping = HashMap::new();
@@ -57,11 +57,10 @@ impl HuffmanTree {
             t.recursive_extract_mapping(prev_bits, mapping);
             prev_bits.pop();
         };
-    } 
-} 
+    }
+}
 
-
-pub struct HuffmanTreeCreator; 
+pub struct HuffmanTreeCreator;
 
 impl HuffmanTreeCreator {
     pub fn get_mappings(weights: &HashMap<u8, u8>) -> (HashMap<u8, BitVec>, HashMap<BitVec, u8>) {
@@ -71,17 +70,17 @@ impl HuffmanTreeCreator {
     }
 
     pub fn get_mapping_on_bits(weights: &HashMap<u8, u8>) -> HashMap<u8, BitVec> {
-        assert!(weights.len() > 0);
-        let mut trees_seq = (*weights).clone().into_iter().map(|(byte, w)| {
-            HuffmanTree::single_node(byte, w as usize)
-        })
-        .collect::<Vec<HuffmanTree>>();
+        let mut trees_seq = (*weights)
+            .clone()
+            .into_iter()
+            .map(|(byte, w)| HuffmanTree::single_node(byte, w as usize))
+            .collect::<Vec<HuffmanTree>>();
 
         let operations_num = trees_seq.len() - 1;
         for _ in 0..operations_num {
-            let mut tree_left = HuffmanTreeCreator::get_and_rm_next_elem(&mut trees_seq); 
+            let mut tree_left = HuffmanTreeCreator::get_and_rm_next_elem(&mut trees_seq);
             let tree_right = HuffmanTreeCreator::get_and_rm_next_elem(&mut trees_seq);
-            
+
             let new_tree = tree_left.merge_right(tree_right);
             trees_seq.push(new_tree);
         }
@@ -108,10 +107,6 @@ impl HuffmanTreeCreator {
 
     pub fn get_mapping_on_bytes(weights: &HashMap<u8, u8>) -> HashMap<BitVec, u8> {
         let on_bits = HuffmanTreeCreator::get_mapping_on_bits(weights);
-        on_bits.into_iter().map(|(byte, bit)| {
-            (bit, byte)
-        })
-        .collect()
-    } 
+        on_bits.into_iter().map(|(byte, bit)| (bit, byte)).collect()
+    }
 }
-

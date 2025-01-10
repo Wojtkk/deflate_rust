@@ -44,7 +44,7 @@ fn main() {
         let decompressed = deflate_compressor.deflate_decompress(&compreseed);
         let compressed = match compreseed {
             TypeOr::Left(bits) => bits.to_string(),
-            TypeOr::Right(bytes) => String::from_utf8(bytes).unwrap()
+            TypeOr::Right(bytes) => String::from_utf8(bytes).unwrap(),
         };
 
         println!("---------------------");

@@ -116,7 +116,7 @@ impl CompressionParams {
 
 #[warn(dead_code)]
 pub struct DeflateCompression {
-    lz77_compressor: LZ77Compressor, 
+    lz77_compressor: LZ77Compressor,
     apply_huffman: bool,
     huffman_codes_predefined: bool,
     apply_lz77: bool,
@@ -126,26 +126,37 @@ impl DeflateCompression {
     pub fn new(compression_params: &CompressionParams) -> Self {
         let window_size = compression_params.get_param(&Params::WindowSize);
         let max_block_size = compression_params.get_param(&Params::MaxBlockSize);
-        let predefined_codes = compression_params.get_param(&Params::CodesPredef).unwrap_or(0) > 0;
-        let apply_huffman = compression_params.get_param(&Params::ApplyHuffman).unwrap_or(1) > 0;
-        let apply_lz77 = compression_params.get_param(&Params::ApplyLZ77).unwrap_or(1) > 0;
+        let predefined_codes = compression_params
+            .get_param(&Params::CodesPredef)
+            .unwrap_or(0)
+            > 0;
+        let apply_huffman = compression_params
+            .get_param(&Params::ApplyHuffman)
+            .unwrap_or(1)
+            > 0;
+        let apply_lz77 = compression_params
+            .get_param(&Params::ApplyLZ77)
+            .unwrap_or(1)
+            > 0;
         DeflateCompression {
             lz77_compressor: LZ77Compressor::new(window_size, max_block_size),
-            apply_huffman: apply_huffman,
+            apply_huffman,
             huffman_codes_predefined: predefined_codes,
-            apply_lz77: apply_lz77,
+            apply_lz77,
         }
     }
 
-    pub fn deflate_compress(&mut self, text: &String) ->  utils::TypeOr<BitVec, Vec<u8>> {
+    pub fn deflate_compress(&mut self, text: &String) -> utils::TypeOr<BitVec, Vec<u8>> {
         let mut result = Vec::from(text.as_bytes());
         if self.apply_lz77 {
             result = self.lz77_compressor.compress(&result);
         }
 
         if self.apply_huffman {
-            return utils::TypeOr::Left(HuffmanCompressor::compress(&result,
-                self.huffman_codes_predefined))
+            return utils::TypeOr::Left(HuffmanCompressor::compress(
+                &result,
+                self.huffman_codes_predefined,
+            ));
         }
         utils::TypeOr::Right(result)
     }
@@ -155,11 +166,11 @@ impl DeflateCompression {
             //utils::TypeOr::Left(bits) => self.huffman_compressor.decompress(bits),
             utils::TypeOr::Left(bits) => HuffmanCompressor::decompress(bits),
             utils::TypeOr::Right(bytes) => bytes.clone(),
-        };  
+        };
 
         println!("{}", String::from_utf8(result.clone()).unwrap());
         if self.apply_lz77 {
-            return String::from_utf8(self.lz77_compressor.decompress(&result)).unwrap()
+            return String::from_utf8(self.lz77_compressor.decompress(&result)).unwrap();
         }
         String::from_utf8(result).unwrap()
     }

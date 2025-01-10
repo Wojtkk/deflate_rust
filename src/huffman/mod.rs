@@ -1,9 +1,8 @@
 pub mod implementation;
-mod utils;
 mod trees;
+mod utils;
 mod weights;
 
 pub use implementation::HuffmanCodes;
 pub use implementation::HuffmanCompressor;
 pub use trees::HuffmanTreeCreator;
-
