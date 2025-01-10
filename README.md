@@ -7,7 +7,6 @@ This project is an implementation of the DEFLATE algorithm as part of the Rust p
 - **LZ77 Compression**: Efficient sliding window compression is already implemented.
 - **Huffman Coding**: Planned for future development to complete the DEFLATE algorithm.
 - **Command-Line Interface**: Flexible control over parameters like window size, block length, and pre-defined codes.
-- **Multithreading** (Coming Soon): Enhancements for performance optimization.
 
 ---
 
@@ -29,6 +28,12 @@ cargo run -- [OPTIONS]
 
 - **`-codes_predef <0|1>`**: Toggles the use of predefined codes for Huffman coding.
   - Example: `-codes_predef 1`
+ 
+- **`-huff <0|1>`**: Disables (`0`) or enables (`1`) the use of the Huffman algorithm in Deflate.  
+  - Example: `-huff 0`  
+
+- **`-lz77 <0|1>`**: Disables (`0`) or enables (`1`) the use of the LZ77 algorithm in Deflate.  
+  - Example: `-lz77 0`  
 
 After running `cargo run`, an explanation of the available options and usage will be displayed in the terminal.
 
@@ -46,6 +51,8 @@ This runs the program with:
 - Sliding window size of 1000 bytes
 - Maximum block length of 20 bytes
 - Predefined Huffman codes enabled
+- Enable/Disable Huffman algorithm in deflate
+- Enable/Disable LZ77 algorithm in deflate
 
 ---
 
@@ -53,11 +60,7 @@ This runs the program with:
 
 ### Completed:
 - Implementation of the LZ77 compression algorithm
-
-### Upcoming:
-- **Huffman Coding**: To be added soon to enable full DEFLATE functionality.
-- **Multithreading**: To improve performance by parallelizing tasks.
-
+  
 ---
 
 ## Development Setup
