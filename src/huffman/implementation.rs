@@ -31,7 +31,6 @@ impl HuffmanCodes {
 
     pub fn new_calc_on_bytes(bytes: &[u8]) -> Self {
         let weights = WeightsCalculator::fitted_to_text(bytes);
-        println!("weights {:#?}", weights);
         let (on_bits, on_bytes) = HuffmanTreeCreator::get_mappings(&weights);
         HuffmanCodes {
             symbols_weights: weights,
@@ -44,7 +43,6 @@ impl HuffmanCodes {
     pub fn new_from_compression_result(compression_result_bits: &BitVec) -> Self {
         let weights =
             HuffmanCodes::extract_weights_from_compression_result(compression_result_bits);
-        println!("weights {:#?}", weights);
         let symbols_num = weights.len();
         let (on_bits, on_bytes) = HuffmanTreeCreator::get_mappings(&weights);
         HuffmanCodes {
@@ -61,7 +59,6 @@ impl HuffmanCodes {
         let bytes = compression_result_bits.to_bytes();
         let encoding_weights_space: usize = bytes[0] as usize;
         let version_bit = encoding_weights_space < ASCII_SZ as usize;
-        println!("xd {}", encoding_weights_space);
 
         if version_bit {
             (1..encoding_weights_space + 1)
@@ -70,7 +67,6 @@ impl HuffmanCodes {
                 .filter(|(_, weight)| *weight > 0)
                 .collect()
         } else {
-            println!("version bit is false!");
             (1..encoding_weights_space)
                 .map(|i| (i as u8 - 1_u8, bytes[i]))
                 .filter(|(_, weight)| *weight > 0)
@@ -118,7 +114,6 @@ impl HuffmanCodes {
     }
 
     pub fn map_on_bits(&self, c: u8) -> BitVec {
-        println!("size of map on bits {}", self.mapping_on_bits.len());
         self.mapping_on_bits[&c].clone()
     }
 
@@ -131,10 +126,6 @@ impl HuffmanCodes {
             }
         }
 
-        for (key, value) in &self.mapping_on_bytes {
-            println!("{}: {} \n", key, value);
-        }
-        println!("{}", prefix);
         (None, 0)
     }
 }
@@ -150,20 +141,15 @@ impl HuffmanCompressor {
         let mut encoded_input = BitVec::new();
         for c in ascii_bytes {
             let char_bits = huffman_codes.map_on_bits(*c);
-            println!("char bits {}", char_bits);
             encoded_input.extend(char_bits);
-            println!("char  {}", c);
-            println!("encoded input {}", encoded_input);
         }
 
-        println!("encoded input {}", encoded_input);
         huffman_codes.append_weights_encoding_tree(encoded_input)
     }
 
     pub fn decompress(bits: &BitVec) -> Vec<u8> {
         let huffman_codes = HuffmanCodes::new_from_compression_result(bits);
         let bits = HuffmanCodes::remove_weights_enconding(bits);
-        println!("bits without weights {}", bits);
         let mut index: usize = 0;
         let mut chars: Vec<u8> = Vec::new();
         while index < bits.len() {

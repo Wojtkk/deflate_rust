@@ -41,8 +41,6 @@ impl HuffmanTree {
 
     fn recursive_extract_mapping(&self, prev_bits: &mut BitVec, mapping: &mut HashMap<u8, BitVec>) {
         if let Some(val) = self.val {
-            println!("plse {}", val);
-            println!("{}", prev_bits);
             mapping.insert(val, prev_bits.clone());
         };
 
@@ -101,7 +99,6 @@ impl HuffmanTreeCreator {
             }
         });
 
-        println!("removed lol {}", trees_seq[index].whole_tree_min_val);
         trees_seq.remove(index)
     }
 

@@ -15,7 +15,6 @@ pub enum Params {
     WindowSize,
     MaxBlockSize,
     CodesPredef,
-    CPUCores,
     ApplyHuffman,
     ApplyLZ77,
 }
@@ -26,7 +25,6 @@ impl Params {
             Params::WindowSize => "Length of the interval in which in case of identical words occurence, the later one will be compressed.",
             Params::MaxBlockSize => "Max length of word we will spot in sliding window.",
             Params::CodesPredef => "If 0 then huffman codes won't be predefined, otherwise we will calculate it according to the given text.",
-            Params::CPUCores => "Number of CPU cores used, may effect final result of the compression. By default set to 1 (no parallelism)",
             Params::ApplyHuffman => "If 0 then huffman algorithm is not applied in compression, otherwise it is",
             Params::ApplyLZ77 => "If 0 then lz77 algorithm is not applied in compression, otherwise it is"
         }
@@ -81,7 +79,6 @@ impl CompressionParams {
         default_params.insert(Params::WindowSize, None);
         default_params.insert(Params::MaxBlockSize, None);
         default_params.insert(Params::CodesPredef, Some(0));
-        default_params.insert(Params::CPUCores, Some(1));
         default_params.insert(Params::ApplyHuffman, Some(1));
         default_params.insert(Params::ApplyLZ77, Some(1));
 
@@ -89,7 +86,6 @@ impl CompressionParams {
         aliases.insert("-window_size".to_string(), Params::WindowSize);
         aliases.insert("-max_len_of_block".to_string(), Params::MaxBlockSize);
         aliases.insert("-codes_predef".to_string(), Params::CodesPredef);
-        aliases.insert("-cores".to_string(), Params::CPUCores);
         aliases.insert("-huff".to_string(), Params::ApplyHuffman);
         aliases.insert("-lz77".to_string(), Params::ApplyLZ77);
         Self {
@@ -168,7 +164,6 @@ impl DeflateCompression {
             utils::TypeOr::Right(bytes) => bytes.clone(),
         };
 
-        println!("{}", String::from_utf8(result.clone()).unwrap());
         if self.apply_lz77 {
             return String::from_utf8(self.lz77_compressor.decompress(&result)).unwrap();
         }
