@@ -1,3 +1,5 @@
+const SIZE_FOR_ONE_WORKER: usize = 5000;
+
 pub mod huffman;
 pub mod lz77;
 pub mod utils;
@@ -9,6 +11,7 @@ use std::collections::HashMap;
 use fstrings::{format_args_f, format_f};
 use huffman::HuffmanCompressor;
 use lz77::LZ77Compressor;
+use rayon::prelude::*;
 
 #[derive(Hash, PartialEq, Eq, Clone)]
 pub enum Params {
@@ -145,7 +148,11 @@ impl DeflateCompression {
     pub fn deflate_compress(&mut self, text: &String) -> utils::TypeOr<BitVec, Vec<u8>> {
         let mut result = Vec::from(text.as_bytes());
         if self.apply_lz77 {
-            result = self.lz77_compressor.compress(&result);
+            result = 
+                result.par_chunks(SIZE_FOR_ONE_WORKER)
+                .map(|chunk| self.lz77_compressor.compress(&chunk.to_vec()))
+                .flatten()
+                .collect()
         }
 
         if self.apply_huffman {
