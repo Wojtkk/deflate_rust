@@ -1,10 +1,11 @@
 use bit_vec::BitVec;
-//use compression::huffman::HuffmanCompressor;
 use compression::huffman::{self, HuffmanTreeCreator};
 use std::collections::HashMap;
 
-#[test]
-fn test_building_tree_from_weights_1() {
+#[macro_use]
+mod utils;
+
+test!(test_building_tree_from_weights_1, {
     let mut weights = HashMap::new();
     weights.insert(b'a', 1_u8);
     weights.insert(b'b', 2_u8);
@@ -13,17 +14,13 @@ fn test_building_tree_from_weights_1() {
     let (on_bits, on_bytes) = HuffmanTreeCreator::get_mappings(&weights);
 
     let mut expected_on_bits = HashMap::new();
-
-    // 'a' becomes 100 (prepend 1 to 00)
     expected_on_bits.insert(b'a', BitVec::from_elem(3, false)); // 100
     expected_on_bits.get_mut(&b'a').unwrap().set(0, true);
 
-    // 'b' becomes 101 (prepend 1 to 01)
     expected_on_bits.insert(b'b', BitVec::from_elem(3, false)); // 101
     expected_on_bits.get_mut(&b'b').unwrap().set(0, true);
     expected_on_bits.get_mut(&b'b').unwrap().set(2, true);
 
-    // 'c' becomes 11 (prepend 1 to 1)
     expected_on_bits.insert(b'c', BitVec::from_elem(2, true)); // 11
     expected_on_bits.get_mut(&b'c').unwrap().set(0, true);
 
@@ -35,10 +32,9 @@ fn test_building_tree_from_weights_1() {
 
     assert_eq!(on_bits, expected_on_bits);
     assert_eq!(on_bytes, expected_on_bytes);
-}
+});
 
-#[test]
-fn test_building_tree_from_weights_2() {
+test!(test_building_tree_from_weights_2, {
     let mut weights = HashMap::new();
     weights.insert(b'a', 16_u8);
     weights.insert(b'b', 32_u8);
@@ -49,13 +45,11 @@ fn test_building_tree_from_weights_2() {
     let (on_bits, on_bytes) = HuffmanTreeCreator::get_mappings(&weights);
 
     let mut expected_on_bits = HashMap::new();
-
     expected_on_bits.insert(b'a', BitVec::from_elem(4, false)); // 1100
     expected_on_bits.get_mut(&b'a').unwrap().set(0, true);
     expected_on_bits.get_mut(&b'a').unwrap().set(1, true);
 
     expected_on_bits.insert(b'b', BitVec::from_elem(3, true)); // 111
-
     expected_on_bits.insert(b'c', BitVec::from_elem(2, false)); // 10
     expected_on_bits.get_mut(&b'c').unwrap().set(0, true);
 
@@ -75,41 +69,38 @@ fn test_building_tree_from_weights_2() {
 
     assert_eq!(on_bits, expected_on_bits);
     assert_eq!(on_bytes, expected_on_bytes);
-}
+});
 
-#[test]
-fn test_huffman_1() {
+test!(test_huffman_1, {
     let s: Vec<u8> = Vec::from("abcabcbabcbb");
     let compressed = huffman::HuffmanCompressor::compress(&s, false);
     let decompressed = huffman::HuffmanCompressor::decompress(&compressed);
     assert_eq!(s, decompressed);
-}
+});
 
-#[test]
-fn test_huffman_2() {
+test!(test_huffman_2, {
     let s: Vec<u8> =
         Vec::from("abcdefghijklmonprstuwvxyzABCDEFGHIJKLMNOPRSTUWVXYZ1234567890!@#$%^&*((_+");
     let compressed = huffman::HuffmanCompressor::compress(&s, false);
     println!("{}", compressed);
     let decompressed = huffman::HuffmanCompressor::decompress(&compressed);
     assert_eq!(s, decompressed);
-}
+});
 
-#[test]
-fn test_huffman_3() {
+test!(test_huffman_3, {
     let big_word = String::from_iter(['a'; 10000]);
     let s: Vec<u8> = Vec::from(big_word);
     let compressed = huffman::HuffmanCompressor::compress(&s, false);
     println!("{}", compressed);
     let decompressed = huffman::HuffmanCompressor::decompress(&compressed);
     assert_eq!(s, decompressed);
-}
-#[test]
-fn test_huffman_4() {
+});
+
+test!(test_huffman_4, {
     let s: Vec<u8> =
         Vec::from("abcdefghijklmonprstuwvxyzABCDEFGHIJKLMNOPRSTUWVXYZ1234567890!@#$%^&*((_+");
     let compressed = huffman::HuffmanCompressor::compress(&s, true);
     println!("{}", compressed);
     let decompressed = huffman::HuffmanCompressor::decompress(&compressed);
     assert_eq!(s, decompressed);
-}
+});
